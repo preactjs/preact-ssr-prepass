@@ -86,7 +86,7 @@ type Visitor = (element: preact.VNode, instance: ?preact.Component) => ?Promise<
  * @return Promise<any> Promise that will complete once the complete vnode tree is traversed. Note that even if
  *         a Suspension throws the returned promise will resolve.
  */
-export default function prepass(vnode: preact.VNode, visitor?: Visitor, context:? Object, opts: ?Options): Promise<any>;
+export default function prepass(vnode: preact.VNode, visitor?: Visitor, context:? Object): Promise<any>;
 ```
 
 ## Replace react-ssr-prepass (e.g. next.js)
