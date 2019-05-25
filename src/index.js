@@ -16,8 +16,7 @@ export default function prepass(
 	vnode/*: VNode */, 
 	// TODO: Support a visitor function
 	visitor/*: ?(vnode: VNode, component: Component) => ?Promise<any> */,
-	context/*: ?Object */, 
-	opts/*: Options */,
+	context/*: ?Object */,
 )/*: Promise<void|Array<void>> */ {
 	// null, boolean, text, number "vnodes" need to prepassing...
 	if (vnode==null || typeof vnode!=='object') {
@@ -28,7 +27,6 @@ export default function prepass(
 		props = vnode.props,
 		children = [];
 	context = context || {};
-	opts = opts || {};
 
 	if (typeof nodeName==='function' && nodeName !== Fragment) {
 		let doRender/* : () => Promise<void> */;
@@ -86,20 +84,20 @@ export default function prepass(
 		}
 
 		return (visitor 
-			? (visitor(vnode, isClassComponent ? c : undefined) || Promise.resolve).then(doRender)
+			? (visitor(vnode, isClassComponent ? c : undefined) || Promise.resolve()).then(doRender)
 			: doRender())
 			.then((rendered) => {
 				if (c.getChildContext) {
 					context = assign(assign({}, context), c.getChildContext());
 				}
 		
-				return prepass(rendered, visitor, context, opts);
+				return prepass(rendered, visitor, context);
 			});
 	}
 
 	if (props && getChildren(children = [], props.children).length) {
 		return Promise.all(children
-			.map((child) => prepass(child, visitor, context, opts)));
+			.map((child) => prepass(child, visitor, context)));
 	}
     
 	return Promise.resolve();

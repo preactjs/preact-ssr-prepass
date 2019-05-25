@@ -18,8 +18,8 @@
   "scripts": {
     "test": "npm run test:flow && npm run test:unit && npm run test:ts",
     "test:flow": "flow check",
-    "test:unit": "jest --coverage --rootDir src",
-    "test:unit:watch": "jest --coverage --watch --rootDir src",
+    "test:unit": "jest --coverage --roots src",
+    "test:unit:watch": "jest --coverage --watch --roots src",
     "test:unit:travis": "yarn test:unit --coverageReporters=text-lcov | yarn coveralls",
     "test:ts": "tsc -p typings/tsconfig.json",
     "build": "npm run build:clean && npm run build:bundle && npm run build:flow",

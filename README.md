@@ -71,24 +71,11 @@ ssrPrepass(<App />, (element, instance) => {
 type Visitor = (element: preact.VNode, instance: ?preact.Component) => ?Promise<any>;
 
 /**
- * Options similar to the ones that can be passed to `preact-render-to-string`
- * 
- * Currently only `render` is supported
- */
-type Options = {|
-    /**
-     * Callback that is invoked before a vnode is rendered
-     */
-    render: (vnode: preact.VNode) => void,
-|};
-
-/**
  * The default export of preact-ssr-prepass
  *
  * @param{vnode} preact.VNode The vnode to traverse
  * @param{visitor} ?Visitor A function that is called for each vnode and might return a Promise to suspend.
  * @param{context} ?Object Initial context to be used when traversing the vnode tree
- * @param{opts} ?Options Options similar to the ones that can be passed to `preact-render-to-string`. See above for details.
  * @return Promise<any> Promise that will complete once the complete vnode tree is traversed. Note that even if
  *         a Suspension throws the returned promise will resolve.
  */
