@@ -40,7 +40,7 @@ import { Suspense, lazy } from 'preact/compat';
 import renderToString from 'preact-render-to-string';
 import prepass from 'preact-ssr-prepass';
 
-const LazyComponent = lazy(() => import('./code-split/all-the-things'));
+const LazyComponent = lazy(() => import('./lazy'));
 
 const vnode = (
     <Suspense fallback={<div>I shall not be rendered on the server</div>}>
