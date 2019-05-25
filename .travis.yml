@@ -7,7 +7,7 @@ jobs:
   include:
     - stage: flow
       script: yarn test:flow
-    - stage: unit test
+    - stage: test
       script: yarn test:unit --coverageReporters=text-lcov | yarn coveralls
     - stage: ts
       script: yarn test:ts
