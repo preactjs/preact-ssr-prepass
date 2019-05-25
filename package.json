@@ -18,8 +18,8 @@
   "scripts": {
     "test": "npm run test:flow && npm run test:unit && npm run test:ts",
     "test:flow": "flow check",
-    "test:unit": "jest --coverage src",
-    "test:unit:watch": "jest --watch src",
+    "test:unit": "jest --coverage --rootDir src",
+    "test:unit:watch": "jest --coverage --watch --rootDir src",
     "test:ts": "tsc -p typings/tsconfig.json",
     "build": "npm run build:clean && npm run build:bundle && npm run build:flow",
     "build:clean": "rimraf dist",
@@ -36,6 +36,7 @@
     "@babel/preset-react": "^7.0.0",
     "babel-eslint": "^10.0.1",
     "babel-jest": "^24.8.0",
+    "coveralls": "^3.0.3",
     "eslint": "^5.16.0",
     "eslint-config-airbnb-base": "^13.1.0",
     "eslint-plugin-import": "^2.17.2",

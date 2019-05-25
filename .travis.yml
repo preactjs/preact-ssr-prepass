@@ -1,6 +1,19 @@
 language: node_js
 node_js:
-  - "10"
-  - "11"
-  - "12"
-script: yarn prepublishOnly
+- '10'
+- '11'
+- '12'
+jobs:
+  include:
+    - stage: flow
+      script: yarn test:flow
+    - stage: unit test
+      script: yarn test:unit --coverageReporters=text-lcov | yarn coveralls
+    - stage: ts
+      script: yarn test:ts
+    - stage: build
+      script: yarn build
+env:
+  matrix:
+    COVERALLS_SERVICE_NAME: travis-pro
+    secure: t6IH1nzPJr1mp7VISaZ8ZMy/yRGhLjBis7EBK5JoTq1VilY+hVUZ6JPXEur33DhIWxNuovK+8Umv4IFeMnd1U2Zf/s/YOXaj3UNShj9sMkRaTuPgfNmLwEBUMU049msImRf221ZhhsRLDE54J0Uo+Zu5dg0Rz0ePr7oiyQgQGUa5ykX5ppktWRda49SC7KP7eprWX5Azes0MjO0YP/o+hvkjomyGa2OrpLCIwfHNg7OmEw1jiUgQmwZtcZ+QQ0iPVA6gZsV+1oVJOndmrrVmFl1Vt5UuNtTfA84htSRVucT2UK/gcRCEb79eqdBc0SiuXmTCiww2rpFJU/I8xEEXhO7oqjD0EkBImfY071Gf//ySguPnQ9o/tXWhCuPz0hCwvQBJvP69KGQ8sB/D9FKI50mJWsorK1OzH062DvFhT1GU0wuYj3t/XEAXZHetao7MOS6jyC8HYm9U8ur0Jz0piAKrf2IzhUppEAMKSpkpsYIqkEgQfAXfNirHclcQ9eqI3cKn54wwVDbhX15etOYhWdK9qtBGnDRUDma19HBvAZ40DyNbNb4i489kbc5nWPBo42Rmz4/s9+dN5ZQE8ioMeqfvNARcdXpxBRx4u6Mkczbfd+p6oFQmA4iArFJ4ZAx19U62heJvSkevpQx7qtwBsVAoHDXnQkcgW3EUxge51Lc=
