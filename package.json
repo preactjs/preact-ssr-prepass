@@ -3,15 +3,29 @@
   "version": "1.0.0",
   "description": "react-ssr-prepass drop-in replacement for preact-x",
   "main": "dist/index.js",
+  "module": "dist/index.module.js",
+  "umd:main": "dist/index.umd.js",
+  "source": "src/index.js",
+  "types": "typings/index.d.ts",
+  "files": [
+    "dist",
+    "typings/*.d.ts",
+    "src"
+  ],
   "repository": "https://github.com/sventschui/preact-ssr-prepass",
   "author": "Sven Tschui <sventschui@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "test": "npm run test:typings && npm run test:unit",
-    "test:typings": "flow check",
-    "test:unit": "jest --coverage",
-    "test:unit:watch": "jest --watch",
-    "build": "microbundle -i src/index.js --external preact --compress --strict --name preactSsrPrepass"
+    "test": "npm run test:flow && npm run test:unit && npm run test:ts",
+    "test:flow": "flow check",
+    "test:unit": "jest --coverage src",
+    "test:unit:watch": "jest --watch src",
+    "test:ts": "tsc -p typings/tsconfig.json",
+    "build": "npm run build:clean && npm run build:bundle && npm run build:flow",
+    "build:clean": "rimraf dist",
+    "build:bundle": "microbundle -i src/index.js --external preact --compress --strict --name preactSsrPrepass",
+    "build:flow": "flow-copy-source -i '*.test.js' src/ dist/",
+    "prepublishOnly": "npm run test && npm run build"
   },
   "peerDependencies": {
     "preact": ">=10 || ^10.0.0-beta.0 || ^10.0.0-alpha.0"
@@ -26,9 +40,12 @@
     "eslint-config-airbnb-base": "^13.1.0",
     "eslint-plugin-import": "^2.17.2",
     "flow-bin": "^0.98.1",
+    "flow-copy-source": "^2.0.6",
     "flow-typed": "^2.5.2",
     "jest": "^24.8.0",
     "microbundle": "^0.11.0",
-    "preact": "^10.0.0-beta.1"
+    "preact": "^10.0.0-beta.1",
+    "rimraf": "^2.6.3",
+    "typescript": "^3.4.5"
   }
 }
