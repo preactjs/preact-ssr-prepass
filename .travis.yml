@@ -3,16 +3,7 @@ node_js:
 - '10'
 - '11'
 - '12'
-jobs:
-  include:
-    - stage: flow
-      script: yarn test:flow
-    - stage: test
-      script: yarn test:unit --coverageReporters=text-lcov | yarn coveralls
-    - stage: ts
-      script: yarn test:ts
-    - stage: build
-      script: yarn build
+script: yarn test:flow && yarn test:unit:travis && yarn test:ts && yarn build
 env:
   global:
     - COVERALLS_SERVICE_NAME=travis-pro
