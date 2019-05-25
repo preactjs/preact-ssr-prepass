@@ -1,5 +1,12 @@
 # preact-ssr-prepass
 
+[![npm](https://img.shields.io/npm/v/preact-ssr-prepass.svg)](http://npm.im/preact-ssr-prepass)
+[![Coverage Status](https://coveralls.io/repos/github/sventschui/preact-ssr-prepass/badge.svg?branch=master&t=G8Cc9D)](https://coveralls.io/github/sventschui/preact-ssr-prepass?branch=master)
+[![OpenCollective Backers](https://opencollective.com/preact/backers/badge.svg)](#backers)
+[![OpenCollective Sponsors](https://opencollective.com/preact/sponsors/badge.svg)](#sponsors)
+[![travis](https://travis-ci.com/sventschui/preact-ssr-prepass.svg?branch=master)](https://travis-ci.com/sventschui/preact-ssr-prepass)
+
+
 > Drop-in replacement for `react-ssr-prepass`.
 
 Neither Preact nor React support `Suspense` on the server as of now. Heavily inspired by `react-ssr-prepass`, `preact-ssr-prepass` provides a two-pass approach with which `Suspense` can be used on the server. In the first pass, `preact-ssr-prepass` 
