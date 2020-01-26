@@ -45,7 +45,8 @@ export default function prepass(
 			// stateless functional components
 			doRender = () => {
 				try {
-					return Promise.resolve(nodeName.call(vnode.__c, props, cctx));
+				  vnode.__c = c = new Component(props, context);
+				  return Promise.resolve(nodeName.call(vnode.__c, props, cctx));
 				}
 				catch (e) {
 					if (e && e.then) {
