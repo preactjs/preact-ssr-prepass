@@ -3,6 +3,7 @@ import { assign, getChildren } from './util';
 import { options, Fragment, Component } from 'preact';
 
 const createContextDefaultValue = '__p';
+const createContextDefaultValueNew = '__';
 
 /*::
 type VNode = {
@@ -45,7 +46,7 @@ export default function prepass(
 			// the context value as `this.context` just for this component.
 			let cxType = nodeName.contextType;
 			let provider = cxType && context[cxType.__c];
-			let cctx = cxType != null ? (provider ? provider.props.value : cxType[createContextDefaultValue]) : context;
+			let cctx = cxType != null ? (provider ? provider.props.value : (cxType[createContextDefaultValue] || cxType[createContextDefaultValueNew])) : context;
 
 			// stateless functional components
 			doRender = () => {
