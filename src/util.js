@@ -1,3 +1,5 @@
+// @flow
+
 /**
  * Copy all properties from `props` onto `obj`.
  * @param {object} obj Object onto which properties should be copied.
@@ -5,7 +7,7 @@
  * @returns {object}
  * @private
  */
-export function assign(obj, props) {
+export function assign(obj/*: Object */, props/*: Object */)/*: Object */ {
 	for (let i in props) obj[i] = props[i];
 	return obj;
 }
@@ -17,7 +19,7 @@ export function assign(obj, props) {
  * @returns {Array} accumulator
  * @private
  */
-export function getChildren(accumulator, children) {
+export function getChildren(accumulator/*: Array<Object> */, children/*: Array<Object> | Object */)/*: Array<Object> */ {
 	if (Array.isArray(children)) {
 		children.reduce(getChildren, accumulator);
 	}

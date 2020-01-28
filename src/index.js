@@ -1,11 +1,17 @@
+// @flow
 import { assign, getChildren } from './util';
-import { options, Fragment } from 'preact';
+import { options, Fragment, Component } from 'preact';
 
 const createContextDefaultValue = '__p';
 
 /*::
 type VNode = {
+	type: string | Function,
+	props: Object,
+	__c: Component,
 };
+
+type VNodes = VNode | Array<VNode>;
 
 type Options = {
 	render: (vnode: VNode) => void;
@@ -14,10 +20,9 @@ type Options = {
 
 export default function prepass(
 	vnode/*: VNode */, 
-	// TODO: Support a visitor function
 	visitor/*: ?(vnode: VNode, component: Component) => ?Promise<any> */,
 	context/*: ?Object */,
-)/*: Promise<void|Array<void>> */ {
+)/*: Promise<any|Array<any>> */ {
 	// null, boolean, text, number "vnodes" need to prepassing...
 	if (vnode==null || typeof vnode!=='object') {
 		return Promise.resolve();
@@ -30,7 +35,7 @@ export default function prepass(
 
 	if (typeof nodeName==='function' && nodeName !== Fragment) {
 		let doRender/* : () => Promise<void> */;
-		let c = vnode.__c = { __v: vnode, context, props };
+		let c = vnode.__c = new Component(props, context);
 		if (options.render) options.render(vnode);
 
 		let isClassComponent = false;

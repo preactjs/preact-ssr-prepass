@@ -666,8 +666,11 @@ describe("prepass", () => {
         it("should not call the visitor for dom, text, null and boolean elements", async () => {
             const visitor = jest.fn(() => undefined);
             await prepass(<div />, visitor);
+            // $FlowFixMe
             await prepass(null, visitor);
+            // $FlowFixMe
             await prepass(123, visitor);
+            // $FlowFixMe
             await prepass(true, visitor);
 
             expect(visitor.mock.calls.length).toEqual(0);
