@@ -3,6 +3,7 @@
 // @jsx h
 import { createElement as h, Fragment, options, createContext, Component } from 'preact';
 import prepass from '.';
+import { useState } from 'preact/hooks';
 
 function Suspendable_({ getPromise, isDone }) {
     if (!isDone()) {
@@ -196,6 +197,20 @@ describe("prepass", () => {
             );
 
             expect(true).toEqual(true);
+        });
+    });
+
+    describe("hooks", () => {
+        it("it should support hooks", async () => {
+            let setStateHoisted;
+            function MyHookedComponent() {
+                const [state, setState] = useState('foo');
+                setStateHoisted = setState;
+
+                return <div>{state}</div>;
+            }
+
+            await prepass(<MyHookedComponent />);
         });
     });
 
@@ -469,7 +484,7 @@ describe("prepass", () => {
     });
 
     describe("preact options", () => {
-        it("should call options.render", async () => {
+        it("should call options.render (legacy)", async () => {
             const Suspendable = jest.fn(Suspendable_);
             options.render = jest.fn();
             
@@ -478,6 +493,17 @@ describe("prepass", () => {
             expect(result).toEqual([undefined]);
             
             delete options.render;
+        });
+
+        it("should call options._render (__r)", async () => {
+            const Suspendable = jest.fn(Suspendable_);
+            options.__r = jest.fn();
+
+            const result = await prepass(<Suspendable isDone={() => true}>Hello</Suspendable>);
+            expect(options.__r.mock.calls.length).toBe(1);
+            expect(result).toEqual([undefined]);
+
+            delete options.__r;
         });
     });
 

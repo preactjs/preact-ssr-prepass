@@ -38,7 +38,10 @@ export default function prepass(
 		let doRender/* : () => Promise<void> */;
 		let c = vnode.__c = new Component(props, context);
 		c.__v = vnode;
+
+		// options.render was renamed to _render (mangled to __r)
 		if (options.render) options.render(vnode);
+		if (options.__r) options.__r(vnode);
 
 		let isClassComponent = false;
 
