@@ -37,6 +37,7 @@ export default function prepass(
 	if (typeof nodeName==='function' && nodeName !== Fragment) {
 		let doRender/* : () => Promise<void> */;
 		let c = vnode.__c = new Component(props, context);
+		c.__v = vnode;
 		if (options.render) options.render(vnode);
 
 		let isClassComponent = false;
