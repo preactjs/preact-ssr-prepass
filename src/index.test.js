@@ -3,7 +3,7 @@
 // @jsx h
 import { createElement as h, Fragment, options, createContext, Component } from 'preact';
 import prepass from '.';
-import { useState, useEffect, useLayoutEffect, useRef } from 'preact/hooks';
+import { useState, useEffect, useLayoutEffect } from 'preact/hooks';
 
 function Suspendable_({ getPromise, isDone }) {
     if (!isDone()) {
