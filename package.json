@@ -34,6 +34,7 @@
   },
   "devDependencies": {
     "@babel/core": "^7.4.5",
+    "@babel/helper-compilation-targets": "^7.10.4",
     "@babel/preset-env": "^7.4.5",
     "@babel/preset-react": "^7.0.0",
     "babel-eslint": "^10.0.1",

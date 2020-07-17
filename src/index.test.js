@@ -3,7 +3,7 @@
 // @jsx h
 import { createElement as h, Fragment, options, createContext, Component } from 'preact';
 import prepass from '.';
-import { useState } from 'preact/hooks';
+import { useState, useEffect, useLayoutEffect, useRef } from 'preact/hooks';
 
 function Suspendable_({ getPromise, isDone }) {
     if (!isDone()) {
@@ -201,18 +201,39 @@ describe("prepass", () => {
     });
 
     describe("hooks", () => {
-        it("it should support hooks", async () => {
-            let setStateHoisted;
-            function MyHookedComponent() {
-                const [state, setState] = useState('foo');
-                setStateHoisted = setState;
-
-                return <div>{state}</div>;
-            }
-
-            await prepass(<MyHookedComponent />);
+        it("it should support the useState hook", async () => {
+          let setStateHoisted;
+          function MyHookedComponent() {
+            const [state, setState] = useState("foo");
+            setStateHoisted = setState;
+    
+            return <div>{state}</div>;
+          }
+    
+          await prepass(<MyHookedComponent />);
+        });
+    
+        it("it should support the useEffect hook", async () => {
+          function MyHookedComponent() {
+            useEffect(() => {}, []);
+    
+            return <div />;
+          }
+    
+          await prepass(<MyHookedComponent />);
+        });
+    
+        it("it should support the useLayoutEffect hook", async () => {
+          function MyHookedComponent() {
+            useLayoutEffect(() => {}, []);
+    
+            return <div />;
+          }
+    
+          await prepass(<MyHookedComponent />);
         });
     });
+    
 
     describe("lifecycle hooks", () => {
         describe("getDerivedStateFromProps", () => {
