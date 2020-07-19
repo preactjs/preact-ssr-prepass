@@ -10,6 +10,8 @@ import {
 } from "preact";
 import prepass from ".";
 import { useState, useEffect, useLayoutEffect } from "preact/hooks";
+import { lazy } from "preact/compat";
+import renderToString from "preact-render-to-string";
 
 function Suspendable_({ getPromise, isDone }) {
   if (!isDone()) {
@@ -498,254 +500,268 @@ describe("prepass", () => {
     });
   });
 
-  let Suspendable,
-    createPromise,
-    getPromise,
-    isDone,
-    resolve,
-    resolveAndRethrow,
-    reject,
-    rejectAndRethrow;
-  beforeEach(() => {
-    getPromise = isDone = resolve = resolveAndRethrow = reject = rejectAndRethrow = null;
-    Suspendable = jest.fn(Suspendable_);
+  describe("lazy", () => {
+    it("should support lazy with renderToString", async () => {
+      function LazyComponentImpl() {
+        return <div>I'm a bit lazy</div>;
+      }
+      const LazyComponent = lazy(() => Promise.resolve(LazyComponentImpl));
+      function App() {
+        return <LazyComponent />;
+      }
 
-    createPromise = () =>
-      new Promise((res) => {
-        resolve = () => {
-          let tmp = prom;
-          prom = null;
-          res();
-          return tmp;
-        };
-        resolveAndRethrow = () => {
-          let tmp = prom;
-          prom = createPromise();
-          res();
-          return tmp;
-        };
-        reject = () => {
-          let tmp = prom;
-          prom = null;
-          res();
-          return tmp;
-        };
-        rejectAndRethrow = () => {
-          let tmp = prom;
-          prom = createPromise();
-          res();
-          return tmp;
-        };
+      const tree = <App />;
+      await prepass(tree);
+      expect(renderToString(tree)).toEqual("<div>I'm a bit lazy</div>");
+    });
+  });
+
+  describe("Suspense", () => {
+    let Suspendable,
+      createPromise,
+      getPromise,
+      isDone,
+      resolve,
+      resolveAndRethrow,
+      reject,
+      rejectAndRethrow;
+    beforeEach(() => {
+      getPromise = isDone = resolve = resolveAndRethrow = reject = rejectAndRethrow = null;
+      Suspendable = jest.fn(Suspendable_);
+
+      createPromise = () =>
+        new Promise((res) => {
+          resolve = () => {
+            let tmp = prom;
+            prom = null;
+            res();
+            return tmp;
+          };
+          resolveAndRethrow = () => {
+            let tmp = prom;
+            prom = createPromise();
+            res();
+            return tmp;
+          };
+          reject = () => {
+            let tmp = prom;
+            prom = null;
+            res();
+            return tmp;
+          };
+          rejectAndRethrow = () => {
+            let tmp = prom;
+            prom = createPromise();
+            res();
+            return tmp;
+          };
+        });
+      let prom = createPromise();
+      getPromise = () => {
+        return prom;
+      };
+
+      isDone = () => !prom;
+    });
+
+    it("should work without suspension", async () => {
+      const Suspendable = jest.fn(Suspendable_);
+      const result = await prepass(
+        <Suspendable isDone={() => true}>Hello</Suspendable>
+      );
+      expect(Suspendable.mock.calls.length).toBe(1);
+      expect(result).toEqual([undefined]);
+    });
+
+    describe("preact options", () => {
+      it("should call options.render (legacy)", async () => {
+        const Suspendable = jest.fn(Suspendable_);
+        options.render = jest.fn();
+
+        const result = await prepass(
+          <Suspendable isDone={() => true}>Hello</Suspendable>
+        );
+        expect(options.render.mock.calls.length).toBe(1);
+        expect(result).toEqual([undefined]);
+
+        delete options.render;
       });
-    let prom = createPromise();
-    getPromise = () => {
-      return prom;
-    };
 
-    isDone = () => !prom;
-  });
+      it("should call options._render (__r)", async () => {
+        const Suspendable = jest.fn(Suspendable_);
+        options.__r = jest.fn();
 
-  it("should work without suspension", async () => {
-    const Suspendable = jest.fn(Suspendable_);
-    const result = await prepass(
-      <Suspendable isDone={() => true}>Hello</Suspendable>
-    );
-    expect(Suspendable.mock.calls.length).toBe(1);
-    expect(result).toEqual([undefined]);
-  });
+        const result = await prepass(
+          <Suspendable isDone={() => true}>Hello</Suspendable>
+        );
+        expect(options.__r.mock.calls.length).toBe(1);
+        expect(result).toEqual([undefined]);
 
-  describe("preact options", () => {
-    it("should call options.render (legacy)", async () => {
-      const Suspendable = jest.fn(Suspendable_);
-      options.render = jest.fn();
-
-      const result = await prepass(
-        <Suspendable isDone={() => true}>Hello</Suspendable>
-      );
-      expect(options.render.mock.calls.length).toBe(1);
-      expect(result).toEqual([undefined]);
-
-      delete options.render;
+        delete options.__r;
+      });
     });
 
-    it("should call options._render (__r)", async () => {
-      const Suspendable = jest.fn(Suspendable_);
-      options.__r = jest.fn();
+    describe("suspensions", () => {
+      it("should await suspension of class component", async () => {
+        const [
+          Suspending,
+          _,
+          { resolve, resolveAndRethrow },
+        ] = createSuspendingComponent();
 
-      const result = await prepass(
-        <Suspendable isDone={() => true}>Hello</Suspendable>
-      );
-      expect(options.__r.mock.calls.length).toBe(1);
-      expect(result).toEqual([undefined]);
+        const spy = jest.spyOn(Suspending.prototype, "render");
 
-      delete options.__r;
-    });
-  });
+        const promise = expectablePromise(
+          prepass(
+            <div>
+              <Suspending foo="bar" />
+            </div>
+          )
+        );
+        expect(spy.mock.calls).toEqual([[{ foo: "bar" }, {}, {}]]);
 
-  // TODO: test the visitor
+        await tick();
+        expect(promise.state).toEqual("<pending>");
 
-  describe("suspensions", () => {
-    // TODO: create a test to assert what happens with state while suspending...
+        resolveAndRethrow();
+        await tick();
+        expect(spy.mock.calls).toEqual([
+          [{ foo: "bar" }, {}, {}],
+          [{ foo: "bar" }, {}, {}],
+        ]);
 
-    it("should await suspension of class component", async () => {
-      const [
-        Suspending,
-        _,
-        { resolve, resolveAndRethrow },
-      ] = createSuspendingComponent();
+        await tick();
+        expect(promise.state).toEqual("<pending>");
 
-      const spy = jest.spyOn(Suspending.prototype, "render");
+        resolve();
+        await tick();
+        await promise;
+        expect(spy.mock.calls).toEqual([
+          [{ foo: "bar" }, {}, {}],
+          [{ foo: "bar" }, {}, {}],
+          [{ foo: "bar" }, {}, {}],
+        ]);
+      });
 
-      const promise = expectablePromise(
-        prepass(
-          <div>
-            <Suspending foo="bar" />
-          </div>
-        )
-      );
-      expect(spy.mock.calls).toEqual([[{ foo: "bar" }, {}, {}]]);
+      it("should await suspension of functional component", async () => {
+        const [
+          _,
+          _Suspending,
+          { resolve, resolveAndRethrow },
+        ] = createSuspendingComponent();
 
-      await tick();
-      expect(promise.state).toEqual("<pending>");
+        const Suspending = jest.fn(_Suspending);
 
-      resolveAndRethrow();
-      await tick();
-      expect(spy.mock.calls).toEqual([
-        [{ foo: "bar" }, {}, {}],
-        [{ foo: "bar" }, {}, {}],
-      ]);
+        const promise = expectablePromise(
+          prepass(
+            <div>
+              <Suspending foo="bar" />
+            </div>
+          )
+        );
+        expect(Suspending.mock.calls).toEqual([[{ foo: "bar" }, {}]]);
 
-      await tick();
-      expect(promise.state).toEqual("<pending>");
+        await tick();
+        expect(promise.state).toEqual("<pending>");
 
-      resolve();
-      await tick();
-      await promise;
-      expect(spy.mock.calls).toEqual([
-        [{ foo: "bar" }, {}, {}],
-        [{ foo: "bar" }, {}, {}],
-        [{ foo: "bar" }, {}, {}],
-      ]);
-    });
+        resolveAndRethrow();
+        await tick();
+        expect(Suspending.mock.calls).toEqual([
+          [{ foo: "bar" }, {}],
+          [{ foo: "bar" }, {}],
+        ]);
 
-    it("should await suspension of functional component", async () => {
-      const [
-        _,
-        _Suspending,
-        { resolve, resolveAndRethrow },
-      ] = createSuspendingComponent();
+        await tick();
+        expect(promise.state).toEqual("<pending>");
 
-      const Suspending = jest.fn(_Suspending);
+        resolve();
+        await tick();
+        await promise;
+        expect(Suspending.mock.calls).toEqual([
+          [{ foo: "bar" }, {}],
+          [{ foo: "bar" }, {}],
+          [{ foo: "bar" }, {}],
+        ]);
+      });
 
-      const promise = expectablePromise(
-        prepass(
-          <div>
-            <Suspending foo="bar" />
-          </div>
-        )
-      );
-      expect(Suspending.mock.calls).toEqual([[{ foo: "bar" }, {}]]);
+      it("should await suspension inside Fragment", async () => {
+        const [
+          _,
+          _Suspending,
+          { resolve, resolveAndRethrow },
+        ] = createSuspendingComponent();
 
-      await tick();
-      expect(promise.state).toEqual("<pending>");
+        const Suspending = jest.fn(_Suspending);
 
-      resolveAndRethrow();
-      await tick();
-      expect(Suspending.mock.calls).toEqual([
-        [{ foo: "bar" }, {}],
-        [{ foo: "bar" }, {}],
-      ]);
+        const promise = expectablePromise(
+          prepass(
+            <Fragment>
+              <Suspending foo="bar" />
+            </Fragment>
+          )
+        );
+        expect(Suspending.mock.calls).toEqual([[{ foo: "bar" }, {}]]);
 
-      await tick();
-      expect(promise.state).toEqual("<pending>");
+        resolveAndRethrow();
+        await tick();
+        expect(Suspending.mock.calls).toEqual([
+          [{ foo: "bar" }, {}],
+          [{ foo: "bar" }, {}],
+        ]);
 
-      resolve();
-      await tick();
-      await promise;
-      expect(Suspending.mock.calls).toEqual([
-        [{ foo: "bar" }, {}],
-        [{ foo: "bar" }, {}],
-        [{ foo: "bar" }, {}],
-      ]);
-    });
+        await tick();
+        expect(promise.state).toEqual("<pending>");
 
-    it("should await suspension inside Fragment", async () => {
-      const [
-        _,
-        _Suspending,
-        { resolve, resolveAndRethrow },
-      ] = createSuspendingComponent();
+        resolve();
+        await tick();
+        await promise;
+        expect(Suspending.mock.calls).toEqual([
+          [{ foo: "bar" }, {}],
+          [{ foo: "bar" }, {}],
+          [{ foo: "bar" }, {}],
+        ]);
+      });
 
-      const Suspending = jest.fn(_Suspending);
+      it("should await throwing suspension", async () => {
+        const [
+          _,
+          _Suspending,
+          { reject, rejectAndRethrow },
+        ] = createSuspendingComponent();
 
-      const promise = expectablePromise(
-        prepass(
-          <Fragment>
-            <Suspending foo="bar" />
-          </Fragment>
-        )
-      );
-      expect(Suspending.mock.calls).toEqual([[{ foo: "bar" }, {}]]);
+        const Suspending = jest.fn(_Suspending);
 
-      resolveAndRethrow();
-      await tick();
-      expect(Suspending.mock.calls).toEqual([
-        [{ foo: "bar" }, {}],
-        [{ foo: "bar" }, {}],
-      ]);
+        const promise = expectablePromise(
+          prepass(
+            <Fragment>
+              <Suspending foo="bar" />
+            </Fragment>
+          )
+        );
+        expect(Suspending.mock.calls).toEqual([[{ foo: "bar" }, {}]]);
 
-      await tick();
-      expect(promise.state).toEqual("<pending>");
+        await tick();
+        expect(promise.state).toEqual("<pending>");
 
-      resolve();
-      await tick();
-      await promise;
-      expect(Suspending.mock.calls).toEqual([
-        [{ foo: "bar" }, {}],
-        [{ foo: "bar" }, {}],
-        [{ foo: "bar" }, {}],
-      ]);
-    });
+        rejectAndRethrow();
+        await tick();
+        expect(Suspending.mock.calls).toEqual([
+          [{ foo: "bar" }, {}],
+          [{ foo: "bar" }, {}],
+        ]);
 
-    it("should await throwing suspension", async () => {
-      const [
-        _,
-        _Suspending,
-        { reject, rejectAndRethrow },
-      ] = createSuspendingComponent();
+        await tick();
+        expect(promise.state).toEqual("<pending>");
 
-      const Suspending = jest.fn(_Suspending);
-
-      const promise = expectablePromise(
-        prepass(
-          <Fragment>
-            <Suspending foo="bar" />
-          </Fragment>
-        )
-      );
-      expect(Suspending.mock.calls).toEqual([[{ foo: "bar" }, {}]]);
-
-      await tick();
-      expect(promise.state).toEqual("<pending>");
-
-      rejectAndRethrow();
-      await tick();
-      expect(Suspending.mock.calls).toEqual([
-        [{ foo: "bar" }, {}],
-        [{ foo: "bar" }, {}],
-      ]);
-
-      await tick();
-      expect(promise.state).toEqual("<pending>");
-
-      reject();
-      await tick();
-      await promise;
-      expect(Suspending.mock.calls).toEqual([
-        [{ foo: "bar" }, {}],
-        [{ foo: "bar" }, {}],
-        [{ foo: "bar" }, {}],
-      ]);
+        reject();
+        await tick();
+        await promise;
+        expect(Suspending.mock.calls).toEqual([
+          [{ foo: "bar" }, {}],
+          [{ foo: "bar" }, {}],
+          [{ foo: "bar" }, {}],
+        ]);
+      });
     });
   });
 
