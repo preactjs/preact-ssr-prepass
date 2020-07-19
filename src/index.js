@@ -4,6 +4,7 @@ import { options, Fragment, Component } from "preact";
 
 const createContextDefaultValue = "__p";
 const createContextDefaultValueNew = "__";
+const _skipEffects = "__s";
 
 /*::
 type VNode = {
@@ -64,7 +65,13 @@ export default function prepass(
       // stateless functional components
       doRender = () => {
         try {
-          return Promise.resolve(nodeName.call(vnode.__c, props, cctx));
+          const previousSkipEffects = options[_skipEffects];
+          options[_skipEffects] = true;
+          const renderResult = Promise.resolve(
+            nodeName.call(vnode.__c, props, cctx)
+          );
+          options[_skipEffects] = previousSkipEffects;
+          return renderResult;
         } catch (e) {
           if (e && e.then) {
             return e.then(doRender, doRender);

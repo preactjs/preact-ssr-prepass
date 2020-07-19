@@ -9,7 +9,7 @@ import {
   Component,
 } from "preact";
 import prepass from ".";
-import { useState } from "preact/hooks";
+import { useState, useEffect, useLayoutEffect } from "preact/hooks";
 
 function Suspendable_({ getPromise, isDone }) {
   if (!isDone()) {
@@ -233,7 +233,7 @@ describe("prepass", () => {
   });
 
   describe("hooks", () => {
-    it("it should support hooks", async () => {
+    it("it should support useState", async () => {
       let setStateHoisted;
       function MyHookedComponent() {
         const [state, setState] = useState("foo");
@@ -243,6 +243,44 @@ describe("prepass", () => {
       }
 
       await prepass(<MyHookedComponent />);
+    });
+
+    it("it should skip useEffect", async () => {
+      const spy = jest.fn();
+      function MyHookedComponent() {
+        useEffect(spy, []);
+
+        return <div />;
+      }
+
+      await prepass(<MyHookedComponent />);
+
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it("it should skip useLayoutEffect", async () => {
+      const spy = jest.fn();
+      function MyHookedComponent() {
+        useLayoutEffect(spy, []);
+
+        return <div />;
+      }
+
+      await prepass(<MyHookedComponent />);
+
+      expect(spy).not.toHaveBeenCalled();
+    });
+
+    it("it should reset _skipEffects", async () => {
+      function MyHookedComponent() {
+        useLayoutEffect(() => {}, []);
+
+        return <div />;
+      }
+
+      options.__s = "test";
+      await prepass(<MyHookedComponent />);
+      expect(options.__s).toEqual("test");
     });
   });
 
