@@ -15,6 +15,11 @@
   "repository": "https://github.com/sventschui/preact-ssr-prepass",
   "author": "Sven Tschui <sventschui@gmail.com>",
   "license": "MIT",
+  "husky": {
+    "hooks": {
+      "pre-commit": "prettier --write src/**/*.js typings/**/*.tsx typings/**/*.ts"
+    }
+  },
   "scripts": {
     "test": "npm run test:flow && npm run test:unit && npm run test:ts",
     "test:flow": "flow check",
@@ -41,9 +46,12 @@
     "flow-bin": "0.117.0",
     "flow-copy-source": "^2.0.6",
     "flow-typed": "^2.5.2",
+    "husky": "^4.2.5",
     "jest": "^24.8.0",
+    "lint-staged": "^10.2.11",
     "microbundle": "^0.11.0",
     "preact": "10",
+    "prettier": "^2.0.5",
     "rimraf": "3",
     "typescript": "^3.4.5"
   }
