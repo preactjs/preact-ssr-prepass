@@ -10,7 +10,7 @@ import {
 } from "preact";
 import prepass from ".";
 import { useState, useEffect, useLayoutEffect } from "preact/hooks";
-import { lazy } from "preact/compat";
+import { lazy, Suspense } from "preact/compat";
 import renderToString from "preact-render-to-string";
 
 function Suspendable_({ getPromise, isDone }) {
@@ -508,6 +508,54 @@ describe("prepass", () => {
       const LazyComponent = lazy(() => Promise.resolve(LazyComponentImpl));
       function App() {
         return <LazyComponent />;
+      }
+
+      const tree = <App />;
+      await prepass(tree);
+      expect(renderToString(tree)).toEqual("<div>I'm a bit lazy</div>");
+    });
+
+    it("should support lazy wrapped in Suspense with renderToString", async () => {
+      function LazyComponentImpl() {
+        return <div>I'm a bit lazy</div>;
+      }
+      const LazyComponent = lazy(() => Promise.resolve(LazyComponentImpl));
+      function App() {
+        return (
+          <Suspense fallback={null}>
+            <LazyComponent />
+          </Suspense>
+        );
+      }
+
+      const tree = <App />;
+      await prepass(tree);
+      expect(renderToString(tree)).toEqual("<div>I'm a bit lazy</div>");
+    });
+
+    it("should support lazy wrapped in ErrorBoundary with renderToString", async () => {
+      function LazyComponentImpl() {
+        return <div>I'm a bit lazy</div>;
+      }
+      const LazyComponent = lazy(() => Promise.resolve(LazyComponentImpl));
+      class ErrorBoundary extends Component {
+        constructor(props) {
+          super(props);
+          this.state = {};
+        }
+        componentDidCatch(e) {
+          this.setState({ e });
+        }
+        render({ children }, { e }) {
+          return e ? "error" : children;
+        }
+      }
+      function App() {
+        return (
+          <ErrorBoundary>
+            <LazyComponent />
+          </ErrorBoundary>
+        );
       }
 
       const tree = <App />;

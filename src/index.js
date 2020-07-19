@@ -1,6 +1,7 @@
 // @flow
 import { assign, getChildren } from "./util";
 import { options, Fragment, Component } from "preact";
+import { Suspense } from "preact/compat";
 
 const createContextDefaultValue = "__p";
 const createContextDefaultValueNew = "__";
@@ -35,7 +36,11 @@ export default function prepass(
     children = [];
   context = context || {};
 
-  if (typeof nodeName === "function" && nodeName !== Fragment) {
+  if (
+    typeof nodeName === "function" &&
+    nodeName !== Fragment &&
+    nodeName !== Suspense // We're handling Suspense the same way as we do fragments as we do not want something to catch promises during prepass
+  ) {
     let doRender /* : () => Promise<void> */;
     let c = (vnode.__c = new Component(props, context));
     c.__v = vnode;
@@ -82,6 +87,7 @@ export default function prepass(
       };
     } else {
       isClassComponent = true;
+
       // class-based components
       // c = new nodeName(props, context);
       c = vnode.__c = new nodeName(props, context);
