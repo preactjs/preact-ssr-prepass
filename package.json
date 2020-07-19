@@ -16,7 +16,6 @@
   "author": "Sven Tschui <sventschui@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "lint": "eslint src/ && flow check",
     "test": "npm run test:flow && npm run test:unit && npm run test:ts",
     "test:flow": "flow check",
     "test:unit": "jest --coverage --roots src",
@@ -39,9 +38,6 @@
     "babel-eslint": "^10.0.1",
     "babel-jest": "^24.8.0",
     "coveralls": "^3.0.3",
-    "eslint": "6",
-    "eslint-config-airbnb-base": "14",
-    "eslint-plugin-import": "^2.17.2",
     "flow-bin": "0.117.0",
     "flow-copy-source": "^2.0.6",
     "flow-typed": "^2.5.2",
