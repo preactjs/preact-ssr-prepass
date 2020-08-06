@@ -187,16 +187,11 @@ describe("prepass", () => {
       expect(Inner.mock.calls.length).toEqual(1);
     });
 
-    it("should traverse multiple rendered children", async () => {
+    it("should traverse array of nodes returned by render", async () => {
       const Inner = jest.fn(() => <div />);
-      const Outer = jest.fn(({ children }) => children);
+      const Outer = jest.fn(() => [<Inner />, <Inner />]);
 
-      await prepass(
-        <Outer>
-          <Inner />
-          <Inner />
-        </Outer>
-      );
+      await prepass(<Outer />);
 
       expect(Inner.mock.calls.length).toEqual(2);
     });
