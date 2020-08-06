@@ -1,6 +1,6 @@
 // @flow
 import { assign, getChildren } from "./util";
-import { options, Fragment, Component } from "preact";
+import { options, Fragment, Component, h } from "preact";
 import { Suspense } from "preact/compat";
 
 const createContextDefaultValue = "__p";
@@ -126,7 +126,13 @@ export default function prepass(
         context = assign(assign({}, context), c.getChildContext());
       }
 
-      return prepass(rendered, visitor, context);
+      let nodeToRender = rendered;
+
+      if (Array.isArray(nodeToRender)) {
+        nodeToRender = h(Fragment, null, rendered);
+      }
+
+      return prepass(nodeToRender, visitor, context);
     });
   }
 
