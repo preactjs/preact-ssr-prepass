@@ -126,6 +126,12 @@ export default function prepass(
         context = assign(assign({}, context), c.getChildContext());
       }
 
+      if (Array.isArray(rendered)) {
+        return Promise.all(
+          rendered.map((node) => prepass(node, visitor, context))
+        );
+      }
+
       return prepass(rendered, visitor, context);
     });
   }
