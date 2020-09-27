@@ -11,7 +11,7 @@ const _skipEffects = "__s";
 type VNode = {
 	type: string | Function,
 	props: Object,
-	__c: Component,
+	__c: typeof Component,
 };
 
 type VNodes = VNode | Array<VNode>;
@@ -23,7 +23,7 @@ type Options = {
 
 export default function prepass(
   vnode /*: VNode */,
-  visitor /*: ?(vnode: VNode, component: Component) => ?Promise<any> */,
+  visitor /*: ?(vnode: VNode, component: typeof Component) => ?Promise<any> */,
   context /*: ?Object */
 ) /*: Promise<any|Array<any>> */ {
   // null, boolean, text, number "vnodes" need to prepassing...
