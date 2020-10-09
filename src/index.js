@@ -43,6 +43,8 @@ export default function prepass(
   ) {
     let doRender /* : () => Promise<void> */;
     let c = (vnode.__c = new Component(props, context));
+    // initialize components in dirty state so setState() doesn't enqueue re-rendering:
+    c.__d = true;
     c.__v = vnode;
 
     // options.render was renamed to _render (mangled to __r)
@@ -91,6 +93,8 @@ export default function prepass(
       // class-based components
       // c = new nodeName(props, context);
       c = vnode.__c = new nodeName(props, context);
+      // initialize components in dirty state so setState() doesn't enqueue re-rendering:
+      c.__d = true;
       c.__v = vnode;
       c.props = props;
       c.context = context;
