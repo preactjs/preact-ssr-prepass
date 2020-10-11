@@ -244,16 +244,60 @@ describe("prepass", () => {
   });
 
   describe("hooks", () => {
-    it("it should support useState", async () => {
-      let setStateHoisted;
+    it("should not enqueue components for re-rendering when using setState", async () => {
+      let didUpdate = false;
+
+      // a re-render would invoke an array sort on the render queue, thus lets check nothing does so
+      const arraySort = jest.spyOn(Array.prototype, "sort");
+
       function MyHookedComponent() {
         const [state, setState] = useState("foo");
-        setStateHoisted = setState;
+
+        if (!didUpdate) {
+          didUpdate = true;
+          throw new Promise((resolve) => {
+            setState("bar");
+            resolve();
+          });
+        }
 
         return <div>{state}</div>;
       }
 
-      await prepass(<MyHookedComponent />);
+      const vnode = <MyHookedComponent />;
+
+      await prepass(vnode);
+      expect(arraySort).not.toHaveBeenCalled();
+
+      // let's test our test. If something changes in preact and no sort is executed
+      // before re-rendering our test would be false-positiv, thus we test that sort is called
+      // when c.__dirty is false
+
+      function MyHookedComponent2() {
+        const c = this;
+
+        const [state, setState] = useState("foo");
+
+        if (!didUpdate) {
+          didUpdate = true;
+          throw new Promise((resolve) => {
+            setState(() => {
+              c.__d = false;
+              return "bar";
+            });
+            resolve();
+          });
+        }
+
+        return <div>{state}</div>;
+      }
+
+      didUpdate = false;
+      const vnode2 = <MyHookedComponent2 />;
+
+      await prepass(vnode2);
+      expect(arraySort).toHaveBeenCalledTimes(1);
+      arraySort.mockRestore();
     });
 
     it("it should skip useEffect", async () => {
@@ -309,7 +353,7 @@ describe("prepass", () => {
 
         await prepass(<Outer foo="bar" />);
 
-        expect(spy.mock.calls).toEqual([[{ foo: "bar" }, undefined]]);
+        expect(spy.mock.calls).toEqual([[{ foo: "bar" }, {}]]);
       });
 
       it("should call getDerivedStateFromProps on class components with initial state", async () => {
@@ -364,7 +408,7 @@ describe("prepass", () => {
         await prepass(<Outer foo="bar" />);
 
         expect(spyCWM.mock.calls).toEqual([]);
-        expect(spyGDSFP.mock.calls).toEqual([[{ foo: "bar" }, undefined]]);
+        expect(spyGDSFP.mock.calls).toEqual([[{ foo: "bar" }, {}]]);
       });
     });
   });
@@ -841,6 +885,145 @@ describe("prepass", () => {
       }
 
       await expect(prepass(<MyComp />)).rejects.toEqual(new Error("hello"));
+    });
+  });
+
+  describe("Component", () => {
+    it("should default state to empty object", async () => {
+      class C1 extends Component {
+        render() {
+          return this.state.foo;
+        }
+      }
+      class C2 extends Component {
+        constructor(props, context) {
+          super(props, context);
+          this.state = { foo: "bar" };
+        }
+        render() {
+          return this.state.foo;
+        }
+      }
+
+      const spyC1render = jest.spyOn(C1.prototype, "render");
+      const spyC2render = jest.spyOn(C2.prototype, "render");
+
+      await prepass(
+        <Fragment>
+          <C1 />
+          <C2 />
+        </Fragment>
+      );
+      expect(spyC1render).toHaveBeenLastCalledWith({}, {}, {});
+      expect(spyC2render).toHaveBeenLastCalledWith({}, { foo: "bar" }, {});
+    });
+
+    it("should not enqueue components for re-rendering when using setState", async () => {
+      let didUpdate = false;
+
+      // a re-render would invoke an array sort on the render queue, thus lets check nothing does so
+      const arraySort = jest.spyOn(Array.prototype, "sort");
+
+      class MyComponent extends Component {
+        render() {
+          if (!didUpdate) {
+            didUpdate = true;
+            throw new Promise((resolve) => {
+              this.setState({ foo: String(didUpdate) });
+              resolve();
+            });
+          }
+
+          return <div>{this.state.foo}</div>;
+        }
+      }
+
+      const vnode = <MyComponent />;
+
+      await prepass(vnode);
+      expect(arraySort).not.toHaveBeenCalled();
+
+      // let's test our test. If something changes in preact and no sort is executed
+      // before re-rendering our test would be false-positiv, thus we test that sort is called
+      // when c.__dirty is false
+      class MyComponent2 extends Component {
+        componentWillMount() {
+          this.__d = false;
+        }
+
+        render() {
+          if (!didUpdate) {
+            didUpdate = true;
+            throw new Promise((resolve) => {
+              this.setState({ foo: String(didUpdate) });
+              resolve();
+            });
+          }
+
+          return <div>{this.state.foo}</div>;
+        }
+      }
+
+      didUpdate = false;
+      const vnode2 = <MyComponent2 />;
+
+      await prepass(vnode2);
+      expect(arraySort).toHaveBeenCalledTimes(1);
+      arraySort.mockRestore();
+    });
+
+    it("should not enqueue components for re-rendering when using forceUpdate", async () => {
+      let didUpdate = false;
+
+      // a re-render would invoke an array sort on the render queue, thus lets check nothing does so
+      const arraySort = jest.spyOn(Array.prototype, "sort");
+
+      class MyComponent extends Component {
+        render() {
+          if (!didUpdate) {
+            didUpdate = true;
+            throw new Promise((resolve) => {
+              this.forceUpdate();
+              resolve();
+            });
+          }
+
+          return <div>{this.state.foo}</div>;
+        }
+      }
+
+      const vnode = <MyComponent />;
+
+      await prepass(vnode);
+      expect(arraySort).not.toHaveBeenCalled();
+
+      // let's test our test. If something changes in preact and no sort is executed
+      // before re-rendering our test would be false-positiv, thus we test that sort is called
+      // when c.__dirty is false
+      class MyComponent2 extends Component {
+        componentWillMount() {
+          this.__d = false;
+        }
+
+        render() {
+          if (!didUpdate) {
+            didUpdate = true;
+            throw new Promise((resolve) => {
+              this.forceUpdate();
+              resolve();
+            });
+          }
+
+          return <div>{this.state.foo}</div>;
+        }
+      }
+
+      didUpdate = false;
+      const vnode2 = <MyComponent2 />;
+
+      await prepass(vnode2);
+      expect(arraySort).toHaveBeenCalledTimes(1);
+      arraySort.mockRestore();
     });
   });
 
