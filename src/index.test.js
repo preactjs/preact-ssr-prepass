@@ -923,10 +923,9 @@ describe("prepass", () => {
       const setDirtyFromPrepass = jest.fn();
 
       class MyComponent extends Component {
-        didUpdate = false;
-
         constructor(props) {
           super(props);
+          this.didUpdate = false;
         }
 
         render() {
@@ -987,10 +986,9 @@ describe("prepass", () => {
       const setDirtyFromPrepass = jest.fn();
 
       class MyComponent extends Component {
-        didUpdate = false;
-
         constructor(props) {
           super(props);
+          this.didUpdate = false;
         }
 
         render() {
