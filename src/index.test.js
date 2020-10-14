@@ -919,69 +919,83 @@ describe("prepass", () => {
     });
 
     it("should not enqueue components for re-rendering when using setState", async () => {
-      let didUpdate = false;
-
-      // a re-render would invoke an array sort on the render queue, thus lets check nothing does so
-      const arraySort = jest.spyOn(Array.prototype, "sort");
+      const setDirtyFromPreactCore = jest.fn();
+      const setDirtyFromPrepass = jest.fn();
 
       class MyComponent extends Component {
+        didUpdate = false;
+
+        constructor(props) {
+          super(props);
+        }
+
         render() {
-          if (!didUpdate) {
-            didUpdate = true;
+          if (!this.didUpdate) {
+            this.didUpdate = true;
             throw new Promise((resolve) => {
-              this.setState({ foo: String(didUpdate) });
+              this.setState({ foo: "didUpdate" });
               resolve();
             });
           }
 
           return <div>{this.state.foo}</div>;
         }
-      }
 
-      const vnode = <MyComponent />;
-
-      await prepass(vnode);
-      expect(arraySort).not.toHaveBeenCalled();
-
-      // let's test our test. If something changes in preact and no sort is executed
-      // before re-rendering our test would be false-positiv, thus we test that sort is called
-      // when c.__dirty is false
-      class MyComponent2 extends Component {
-        componentWillMount() {
-          this.__d = false;
+        get __d() {
+          return Boolean(this.dirty);
         }
 
-        render() {
-          if (!didUpdate) {
-            didUpdate = true;
-            throw new Promise((resolve) => {
-              this.setState({ foo: String(didUpdate) });
-              resolve();
-            });
+        set __d(dirty) {
+          if (
+            // this checks whether the call comes from prepass or preact (core)
+            new Error().stack
+              .split("\n")[2]
+              .match(/^\s*at prepass \(.*\/src\/index\.js:[0-9]+:[0-9]+\)$/)
+          ) {
+            // we want to force the failure case here to test that preact
+            // didn't change in a way invalidating our shady test method
+            if (!this.props.forceNotDirty) {
+              this.dirty = dirty;
+              setDirtyFromPrepass(dirty);
+            }
+          } else {
+            setDirtyFromPreactCore(dirty);
+            this.dirty = dirty;
           }
-
-          return <div>{this.state.foo}</div>;
         }
       }
 
-      didUpdate = false;
-      const vnode2 = <MyComponent2 />;
+      await prepass(<MyComponent forceNotDirty={false} />);
+      // we expect that preact-ssr-prepass initializes the component as dirty to prevent
+      // the component to be added to preacts internal rendering queue
+      expect(setDirtyFromPrepass).toHaveBeenCalledTimes(1);
+      // we expect preact-core to not mark this component as dirty, as it already was dirty
+      expect(setDirtyFromPreactCore).toHaveBeenCalledTimes(0);
 
-      await prepass(vnode2);
-      expect(arraySort).toHaveBeenCalledTimes(1);
-      arraySort.mockRestore();
+      // now we test our test... sind this is quite a shady test method we need to make sure
+      // it is not false positive due to internal preact changes
+      await prepass(<MyComponent forceNotDirty={true} />);
+      // we expect that we successfully ignored the call of prepass to mark the component as dirty
+      // thus no additional call is expected here
+      expect(setDirtyFromPrepass).toHaveBeenCalledTimes(1);
+      // we expect that precat marks the component as dirty and thus adds it to its internal rendering queue
+      expect(setDirtyFromPreactCore).toHaveBeenCalledTimes(1);
     });
 
     it("should not enqueue components for re-rendering when using forceUpdate", async () => {
-      let didUpdate = false;
-
-      // a re-render would invoke an array sort on the render queue, thus lets check nothing does so
-      const arraySort = jest.spyOn(Array.prototype, "sort");
+      const setDirtyFromPreactCore = jest.fn();
+      const setDirtyFromPrepass = jest.fn();
 
       class MyComponent extends Component {
+        didUpdate = false;
+
+        constructor(props) {
+          super(props);
+        }
+
         render() {
-          if (!didUpdate) {
-            didUpdate = true;
+          if (!this.didUpdate) {
+            this.didUpdate = true;
             throw new Promise((resolve) => {
               this.forceUpdate();
               resolve();
@@ -990,40 +1004,46 @@ describe("prepass", () => {
 
           return <div>{this.state.foo}</div>;
         }
-      }
 
-      const vnode = <MyComponent />;
-
-      await prepass(vnode);
-      expect(arraySort).not.toHaveBeenCalled();
-
-      // let's test our test. If something changes in preact and no sort is executed
-      // before re-rendering our test would be false-positiv, thus we test that sort is called
-      // when c.__dirty is false
-      class MyComponent2 extends Component {
-        componentWillMount() {
-          this.__d = false;
+        get __d() {
+          return Boolean(this.dirty);
         }
 
-        render() {
-          if (!didUpdate) {
-            didUpdate = true;
-            throw new Promise((resolve) => {
-              this.forceUpdate();
-              resolve();
-            });
+        set __d(dirty) {
+          if (
+            // this checks whether the call comes from prepass or preact (core)
+            new Error().stack
+              .split("\n")[2]
+              .match(/^\s*at prepass \(.*\/src\/index\.js:[0-9]+:[0-9]+\)$/)
+          ) {
+            // we want to force the failure case here to test that preact
+            // didn't change in a way invalidating our shady test method
+            if (!this.props.forceNotDirty) {
+              this.dirty = dirty;
+              setDirtyFromPrepass(dirty);
+            }
+          } else {
+            setDirtyFromPreactCore(dirty);
+            this.dirty = dirty;
           }
-
-          return <div>{this.state.foo}</div>;
         }
       }
 
-      didUpdate = false;
-      const vnode2 = <MyComponent2 />;
+      await prepass(<MyComponent forceNotDirty={false} />);
+      // we expect that preact-ssr-prepass initializes the component as dirty to prevent
+      // the component to be added to preacts internal rendering queue
+      expect(setDirtyFromPrepass).toHaveBeenCalledTimes(1);
+      // we expect preact-core to not mark this component as dirty, as it already was dirty
+      expect(setDirtyFromPreactCore).toHaveBeenCalledTimes(0);
 
-      await prepass(vnode2);
-      expect(arraySort).toHaveBeenCalledTimes(1);
-      arraySort.mockRestore();
+      // now we test our test... sind this is quite a shady test method we need to make sure
+      // it is not false positive due to internal preact changes
+      await prepass(<MyComponent forceNotDirty={true} />);
+      // we expect that we successfully ignored the call of prepass to mark the component as dirty
+      // thus no additional call is expected here
+      expect(setDirtyFromPrepass).toHaveBeenCalledTimes(1);
+      // we expect that precat marks the component as dirty and thus adds it to its internal rendering queue
+      expect(setDirtyFromPreactCore).toHaveBeenCalledTimes(1);
     });
   });
 
