@@ -244,16 +244,60 @@ describe("prepass", () => {
   });
 
   describe("hooks", () => {
-    it("it should support useState", async () => {
-      let setStateHoisted;
+    it("should not enqueue components for re-rendering when using setState", async () => {
+      let didUpdate = false;
+
+      // a re-render would invoke an array sort on the render queue, thus lets check nothing does so
+      const arraySort = jest.spyOn(Array.prototype, "sort");
+
       function MyHookedComponent() {
         const [state, setState] = useState("foo");
-        setStateHoisted = setState;
+
+        if (!didUpdate) {
+          didUpdate = true;
+          throw new Promise((resolve) => {
+            setState("bar");
+            resolve();
+          });
+        }
 
         return <div>{state}</div>;
       }
 
-      await prepass(<MyHookedComponent />);
+      const vnode = <MyHookedComponent />;
+
+      await prepass(vnode);
+      expect(arraySort).not.toHaveBeenCalled();
+
+      // let's test our test. If something changes in preact and no sort is executed
+      // before re-rendering our test would be false-positiv, thus we test that sort is called
+      // when c.__dirty is false
+
+      function MyHookedComponent2() {
+        const c = this;
+
+        const [state, setState] = useState("foo");
+
+        if (!didUpdate) {
+          didUpdate = true;
+          throw new Promise((resolve) => {
+            setState(() => {
+              c.__d = false;
+              return "bar";
+            });
+            resolve();
+          });
+        }
+
+        return <div>{state}</div>;
+      }
+
+      didUpdate = false;
+      const vnode2 = <MyHookedComponent2 />;
+
+      await prepass(vnode2);
+      expect(arraySort).toHaveBeenCalledTimes(1);
+      arraySort.mockRestore();
     });
 
     it("it should skip useEffect", async () => {
@@ -309,7 +353,7 @@ describe("prepass", () => {
 
         await prepass(<Outer foo="bar" />);
 
-        expect(spy.mock.calls).toEqual([[{ foo: "bar" }, undefined]]);
+        expect(spy.mock.calls).toEqual([[{ foo: "bar" }, {}]]);
       });
 
       it("should call getDerivedStateFromProps on class components with initial state", async () => {
@@ -364,7 +408,7 @@ describe("prepass", () => {
         await prepass(<Outer foo="bar" />);
 
         expect(spyCWM.mock.calls).toEqual([]);
-        expect(spyGDSFP.mock.calls).toEqual([[{ foo: "bar" }, undefined]]);
+        expect(spyGDSFP.mock.calls).toEqual([[{ foo: "bar" }, {}]]);
       });
     });
   });
@@ -841,6 +885,163 @@ describe("prepass", () => {
       }
 
       await expect(prepass(<MyComp />)).rejects.toEqual(new Error("hello"));
+    });
+  });
+
+  describe("Component", () => {
+    it("should default state to empty object", async () => {
+      class C1 extends Component {
+        render() {
+          return this.state.foo;
+        }
+      }
+      class C2 extends Component {
+        constructor(props, context) {
+          super(props, context);
+          this.state = { foo: "bar" };
+        }
+        render() {
+          return this.state.foo;
+        }
+      }
+
+      const spyC1render = jest.spyOn(C1.prototype, "render");
+      const spyC2render = jest.spyOn(C2.prototype, "render");
+
+      await prepass(
+        <Fragment>
+          <C1 />
+          <C2 />
+        </Fragment>
+      );
+      expect(spyC1render).toHaveBeenLastCalledWith({}, {}, {});
+      expect(spyC2render).toHaveBeenLastCalledWith({}, { foo: "bar" }, {});
+    });
+
+    it("should not enqueue components for re-rendering when using setState", async () => {
+      const setDirtyFromPreactCore = jest.fn();
+      const setDirtyFromPrepass = jest.fn();
+
+      class MyComponent extends Component {
+        constructor(props) {
+          super(props);
+          this.didUpdate = false;
+        }
+
+        render() {
+          if (!this.didUpdate) {
+            this.didUpdate = true;
+            throw new Promise((resolve) => {
+              this.setState({ foo: "didUpdate" });
+              resolve();
+            });
+          }
+
+          return <div>{this.state.foo}</div>;
+        }
+
+        get __d() {
+          return Boolean(this.dirty);
+        }
+
+        set __d(dirty) {
+          if (
+            // this checks whether the call comes from prepass or preact (core)
+            new Error().stack
+              .split("\n")[2]
+              .match(/^\s*at prepass \(.*\/src\/index\.js:[0-9]+:[0-9]+\)$/)
+          ) {
+            // we want to force the failure case here to test that preact
+            // didn't change in a way invalidating our shady test method
+            if (!this.props.forceNotDirty) {
+              this.dirty = dirty;
+              setDirtyFromPrepass(dirty);
+            }
+          } else {
+            setDirtyFromPreactCore(dirty);
+            this.dirty = dirty;
+          }
+        }
+      }
+
+      await prepass(<MyComponent forceNotDirty={false} />);
+      // we expect that preact-ssr-prepass initializes the component as dirty to prevent
+      // the component to be added to preacts internal rendering queue
+      expect(setDirtyFromPrepass).toHaveBeenCalledTimes(1);
+      // we expect preact-core to not mark this component as dirty, as it already was dirty
+      expect(setDirtyFromPreactCore).toHaveBeenCalledTimes(0);
+
+      // now we test our test... sind this is quite a shady test method we need to make sure
+      // it is not false positive due to internal preact changes
+      await prepass(<MyComponent forceNotDirty={true} />);
+      // we expect that we successfully ignored the call of prepass to mark the component as dirty
+      // thus no additional call is expected here
+      expect(setDirtyFromPrepass).toHaveBeenCalledTimes(1);
+      // we expect that precat marks the component as dirty and thus adds it to its internal rendering queue
+      expect(setDirtyFromPreactCore).toHaveBeenCalledTimes(1);
+    });
+
+    it("should not enqueue components for re-rendering when using forceUpdate", async () => {
+      const setDirtyFromPreactCore = jest.fn();
+      const setDirtyFromPrepass = jest.fn();
+
+      class MyComponent extends Component {
+        constructor(props) {
+          super(props);
+          this.didUpdate = false;
+        }
+
+        render() {
+          if (!this.didUpdate) {
+            this.didUpdate = true;
+            throw new Promise((resolve) => {
+              this.forceUpdate();
+              resolve();
+            });
+          }
+
+          return <div>{this.state.foo}</div>;
+        }
+
+        get __d() {
+          return Boolean(this.dirty);
+        }
+
+        set __d(dirty) {
+          if (
+            // this checks whether the call comes from prepass or preact (core)
+            new Error().stack
+              .split("\n")[2]
+              .match(/^\s*at prepass \(.*\/src\/index\.js:[0-9]+:[0-9]+\)$/)
+          ) {
+            // we want to force the failure case here to test that preact
+            // didn't change in a way invalidating our shady test method
+            if (!this.props.forceNotDirty) {
+              this.dirty = dirty;
+              setDirtyFromPrepass(dirty);
+            }
+          } else {
+            setDirtyFromPreactCore(dirty);
+            this.dirty = dirty;
+          }
+        }
+      }
+
+      await prepass(<MyComponent forceNotDirty={false} />);
+      // we expect that preact-ssr-prepass initializes the component as dirty to prevent
+      // the component to be added to preacts internal rendering queue
+      expect(setDirtyFromPrepass).toHaveBeenCalledTimes(1);
+      // we expect preact-core to not mark this component as dirty, as it already was dirty
+      expect(setDirtyFromPreactCore).toHaveBeenCalledTimes(0);
+
+      // now we test our test... sind this is quite a shady test method we need to make sure
+      // it is not false positive due to internal preact changes
+      await prepass(<MyComponent forceNotDirty={true} />);
+      // we expect that we successfully ignored the call of prepass to mark the component as dirty
+      // thus no additional call is expected here
+      expect(setDirtyFromPrepass).toHaveBeenCalledTimes(1);
+      // we expect that precat marks the component as dirty and thus adds it to its internal rendering queue
+      expect(setDirtyFromPreactCore).toHaveBeenCalledTimes(1);
     });
   });
 
