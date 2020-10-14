@@ -46,6 +46,10 @@ export default function prepass(
     // initialize components in dirty state so setState() doesn't enqueue re-rendering:
     c.__d = true;
     c.__v = vnode;
+    /* istanbul ignore else */
+    if (c.state === undefined) {
+      c.state = {};
+    }
 
     // options.render was renamed to _render (mangled to __r)
     if (options.render) options.render(vnode);
@@ -98,6 +102,9 @@ export default function prepass(
       c.__v = vnode;
       c.props = props;
       c.context = context;
+      if (c.state === undefined) {
+        c.state = {};
+      }
 
       // TODO: does react-ssr-prepass call the visitor before lifecycle hooks?
       if (nodeName.getDerivedStateFromProps)
@@ -109,7 +116,7 @@ export default function prepass(
 
       doRender = () => {
         try {
-          return Promise.resolve(c.render(c.props, c.state || {}, c.context));
+          return Promise.resolve(c.render(c.props, c.state, c.context));
         } catch (e) {
           if (e && e.then) {
             return e.then(doRender, doRender);
