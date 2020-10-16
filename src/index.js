@@ -69,7 +69,7 @@ function createRender(nodeName, vnode, props, cctx, isClassComponent) {
   };
 }
 
-const visitChild = (vnode, visitor, context) => {
+const visitChild = (vnode, visitor, context, traversalChildren) => {
   // null, boolean, text, number "vnodes" need to prepassing...
   if (vnode == null || typeof vnode !== "object") return [];
 
@@ -129,7 +129,7 @@ const visitChild = (vnode, visitor, context) => {
         // context = assign(assign({}, context), c.getChildContext());
         // TODO: should this be scoped by sub-tree....
         // https://github.com/FormidableLabs/react-ssr-prepass/blob/master/src/visitor.js#L190
-        context = assign(context, c.getChildContext());
+        traversalChildren.push(assign(assign({}, context), c.getChildContext()));
       }
 
       if (Array.isArray(rendered)) {
@@ -155,11 +155,12 @@ export default async function prepass(
   context = context || {};
 
   const traversalChildren = [[vnode]];
+  const traversalContext = [context]
   while (traversalChildren.length > 0) {
     // $FlowFixMe
     const element = traversalChildren[traversalChildren.length - 1].shift();
     if (element !== undefined) {
-      const result = visitChild(element, visitor, context);
+      const result = visitChild(element, visitor, traversalContext[traversalContext.length - 1], traversalContext);
       if (typeof result.then === "function") {
         traversalChildren.push(await result);
       } else {
@@ -167,6 +168,7 @@ export default async function prepass(
       }
     } else {
       traversalChildren.pop();
+      traversalContext.pop();
     }
   }
 
