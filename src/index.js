@@ -133,9 +133,7 @@ const visitChild = (vnode, visitor, context, traversalContext) => {
 
     return promise.then((rendered) => {
       if (c.getChildContext) {
-        traversalContext.push(
-          assign(assign({}, context), c.getChildContext())
-        );
+        traversalContext.push(assign(assign({}, context), c.getChildContext()));
       }
 
       if (Array.isArray(rendered)) {
@@ -169,7 +167,7 @@ export default async function prepass(
       const result = visitChild(
         element,
         visitor,
-        traversalContext[traversalContext.length - 1],
+        traversalContext[traversalContext.length - 1] || {},
         traversalContext
       );
 
