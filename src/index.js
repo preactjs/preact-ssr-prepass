@@ -69,7 +69,7 @@ function createRender(nodeName, vnode, props, cctx, isClassComponent) {
   };
 }
 
-const visitChild = (vnode, visitor, context, traversalChildren) => {
+const visitChild = (vnode, visitor, context, traversalContext) => {
   // null, boolean, text, number "vnodes" need to prepassing...
   if (vnode == null || typeof vnode !== "object") return [];
 
@@ -122,10 +122,10 @@ const visitChild = (vnode, visitor, context, traversalChildren) => {
     let promise;
     if (visitor) {
       const result = visitor(vnode, isClassComponent ? c : undefined);
-      if (result && typeof result.then === 'function') {
+      if (result && typeof result.then === "function") {
         promise = result.then(doRender);
       } else {
-        promise = doRender()
+        promise = doRender();
       }
     } else {
       promise = doRender();
@@ -133,10 +133,7 @@ const visitChild = (vnode, visitor, context, traversalChildren) => {
 
     return promise.then((rendered) => {
       if (c.getChildContext) {
-        // context = assign(assign({}, context), c.getChildContext());
-        // TODO: should this be scoped by sub-tree....
-        // https://github.com/FormidableLabs/react-ssr-prepass/blob/master/src/visitor.js#L190
-        traversalChildren.push(
+        traversalContext.push(
           assign(assign({}, context), c.getChildContext())
         );
       }
@@ -175,7 +172,8 @@ export default async function prepass(
         traversalContext[traversalContext.length - 1],
         traversalContext
       );
-      if (typeof result.then === "function") {
+
+      if (result && typeof result.then === "function") {
         traversalChildren.push(await result);
       } else {
         traversalChildren.push(result);
