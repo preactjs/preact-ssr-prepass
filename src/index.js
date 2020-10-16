@@ -47,9 +47,15 @@ function createRender(vnode, props, cctx, isClassComponent) {
       const previousSkipEffects = options[_skipEffects];
       options[_skipEffects] = true;
 
-      const renderResult = isClassComponent ?
-        Promise.resolve(vnode.__c.render(vnode.__c.props, vnode.__c.state, vnode.__c.context)) :
-        Promise.resolve(vnode.type.call(vnode.__c, props, cctx));
+      const renderResult = isClassComponent
+        ? Promise.resolve(
+            vnode.__c.render(
+              vnode.__c.props,
+              vnode.__c.state,
+              vnode.__c.context
+            )
+          )
+        : Promise.resolve(vnode.type.call(vnode.__c, props, cctx));
 
       options[_skipEffects] = previousSkipEffects;
       return renderResult;
@@ -57,10 +63,10 @@ function createRender(vnode, props, cctx, isClassComponent) {
       if (e && e.then) {
         return e.then(doRender, doRender);
       }
-  
+
       return Promise.reject(e);
     }
-  }
+  };
 }
 
 const visitChild = async (vnode, visitor, context) => {
@@ -113,7 +119,7 @@ const visitChild = async (vnode, visitor, context) => {
       else if (c.componentWillMount) c.componentWillMount();
     }
 
-    doRender = createRender(vnode, props, cctx, isClassComponent)
+    doRender = createRender(vnode, props, cctx, isClassComponent);
 
     return (visitor
       ? (
@@ -129,7 +135,7 @@ const visitChild = async (vnode, visitor, context) => {
         return rendered;
       }
 
-      return [rendered]
+      return [rendered];
     });
   }
 
@@ -138,7 +144,7 @@ const visitChild = async (vnode, visitor, context) => {
   }
 
   return [];
-}
+};
 
 export default async function prepass(
   vnode /*: VNode */,
@@ -149,9 +155,9 @@ export default async function prepass(
 
   const traversalChildren = [[vnode]];
   while (traversalChildren.length > 0) {
-    const element = traversalChildren[traversalChildren.length - 1].shift()
+    const element = traversalChildren[traversalChildren.length - 1].shift();
     if (element !== undefined) {
-      traversalChildren.push(await visitChild(element, visitor, context))
+      traversalChildren.push(await visitChild(element, visitor, context));
     } else {
       traversalChildren.pop();
     }
