@@ -41,7 +41,7 @@ type Options = {
 };
 */
 
-function createRender(vnode, props, cctx, isClassComponent) {
+function createRender(nodeName, vnode, props, cctx, isClassComponent) {
   return function doRender() {
     try {
       const previousSkipEffects = options[_skipEffects];
@@ -55,7 +55,7 @@ function createRender(vnode, props, cctx, isClassComponent) {
               vnode.__c.context
             )
           )
-        : Promise.resolve(vnode.type.call(vnode.__c, props, cctx));
+        : Promise.resolve(nodeName.call(vnode.__c, props, cctx));
 
       options[_skipEffects] = previousSkipEffects;
       return renderResult;
@@ -106,8 +106,6 @@ const visitChild = (vnode, visitor, context) => {
     } else {
       isClassComponent = true;
 
-      // class-based components
-      // c = new nodeName(props, context);
       c = initializeComponent(nodeName, vnode, props, context);
 
       // TODO: does react-ssr-prepass call the visitor before lifecycle hooks?
@@ -119,7 +117,7 @@ const visitChild = (vnode, visitor, context) => {
       else if (c.componentWillMount) c.componentWillMount();
     }
 
-    doRender = createRender(vnode, props, cctx, isClassComponent);
+    doRender = createRender(nodeName, vnode, props, cctx, isClassComponent);
 
     return (visitor
       ? (
@@ -130,6 +128,7 @@ const visitChild = (vnode, visitor, context) => {
       if (c.getChildContext) {
         // context = assign(assign({}, context), c.getChildContext());
         // TODO: should this be scoped by sub-tree....
+        // https://github.com/FormidableLabs/react-ssr-prepass/blob/master/src/visitor.js#L190
         context = assign(context, c.getChildContext());
       }
 
@@ -157,6 +156,7 @@ export default async function prepass(
 
   const traversalChildren = [[vnode]];
   while (traversalChildren.length > 0) {
+    // $FlowFixMe
     const element = traversalChildren[traversalChildren.length - 1].shift();
     if (element !== undefined) {
       const result = visitChild(element, visitor, context);
@@ -169,4 +169,6 @@ export default async function prepass(
       traversalChildren.pop();
     }
   }
+
+  return traversalChildren;
 }

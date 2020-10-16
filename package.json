@@ -21,7 +21,7 @@
     }
   },
   "scripts": {
-    "test": "npm run test:unit && npm run test:ts",
+    "test": "npm run test:flow && npm run test:unit && npm run test:ts",
     "test:flow": "flow check",
     "test:unit": "jest --coverage --roots src",
     "test:unit:watch": "jest --coverage --watch --roots src",
