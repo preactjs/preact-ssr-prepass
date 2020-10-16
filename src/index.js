@@ -128,7 +128,9 @@ const visitChild = (vnode, visitor, context) => {
       : doRender()
     ).then((rendered) => {
       if (c.getChildContext) {
-        context = assign(assign({}, context), c.getChildContext());
+        // context = assign(assign({}, context), c.getChildContext());
+        // TODO: should this be scoped by sub-tree....
+        context = assign(context, c.getChildContext());
       }
 
       if (Array.isArray(rendered)) {
@@ -158,7 +160,7 @@ export default async function prepass(
     const element = traversalChildren[traversalChildren.length - 1].shift();
     if (element !== undefined) {
       const result = visitChild(element, visitor, context);
-      if (typeof result.then === 'function') {
+      if (typeof result.then === "function") {
         traversalChildren.push(await result);
       } else {
         traversalChildren.push(result);
