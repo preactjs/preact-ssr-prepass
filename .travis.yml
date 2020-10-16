@@ -3,7 +3,7 @@ node_js:
 - '10'
 - '11'
 - '12'
-script: yarn test:flow && yarn test:unit:travis && yarn test:ts && yarn build
+script: yarn test:unit:travis && yarn test:ts && yarn build
 env:
   global:
     - COVERALLS_SERVICE_NAME=travis-pro
