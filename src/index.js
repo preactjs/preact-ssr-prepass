@@ -69,7 +69,7 @@ function createRender(vnode, props, cctx, isClassComponent) {
   };
 }
 
-const visitChild = async (vnode, visitor, context) => {
+const visitChild = (vnode, visitor, context) => {
   // null, boolean, text, number "vnodes" need to prepassing...
   if (vnode == null || typeof vnode !== "object") return [];
 
@@ -157,7 +157,12 @@ export default async function prepass(
   while (traversalChildren.length > 0) {
     const element = traversalChildren[traversalChildren.length - 1].shift();
     if (element !== undefined) {
-      traversalChildren.push(await visitChild(element, visitor, context));
+      const result = visitChild(element, visitor, context);
+      if (typeof result.then === 'function') {
+        traversalChildren.push(await result);
+      } else {
+        traversalChildren.push(result);
+      }
     } else {
       traversalChildren.pop();
     }
