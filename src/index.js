@@ -119,17 +119,26 @@ const visitChild = (vnode, visitor, context, traversalChildren) => {
 
     doRender = createRender(nodeName, vnode, props, cctx, isClassComponent);
 
-    return (visitor
-      ? (
-          visitor(vnode, isClassComponent ? c : undefined) || Promise.resolve()
-        ).then(doRender)
-      : doRender()
-    ).then((rendered) => {
+    let promise;
+    if (visitor) {
+      const result = visitor(vnode, isClassComponent ? c : undefined);
+      if (result && typeof result.then === 'function') {
+        promise = result.then(doRender);
+      } else {
+        promise = doRender()
+      }
+    } else {
+      promise = doRender();
+    }
+
+    return promise.then((rendered) => {
       if (c.getChildContext) {
         // context = assign(assign({}, context), c.getChildContext());
         // TODO: should this be scoped by sub-tree....
         // https://github.com/FormidableLabs/react-ssr-prepass/blob/master/src/visitor.js#L190
-        traversalChildren.push(assign(assign({}, context), c.getChildContext()));
+        traversalChildren.push(
+          assign(assign({}, context), c.getChildContext())
+        );
       }
 
       if (Array.isArray(rendered)) {
@@ -155,12 +164,17 @@ export default async function prepass(
   context = context || {};
 
   const traversalChildren = [[vnode]];
-  const traversalContext = [context]
+  const traversalContext = [context];
   while (traversalChildren.length > 0) {
     // $FlowFixMe
     const element = traversalChildren[traversalChildren.length - 1].shift();
     if (element !== undefined) {
-      const result = visitChild(element, visitor, traversalContext[traversalContext.length - 1], traversalContext);
+      const result = visitChild(
+        element,
+        visitor,
+        traversalContext[traversalContext.length - 1],
+        traversalContext
+      );
       if (typeof result.then === "function") {
         traversalChildren.push(await result);
       } else {
