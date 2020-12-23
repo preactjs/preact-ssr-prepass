@@ -551,6 +551,28 @@ describe("prepass", () => {
 
       expect(renderFn.mock.calls).toEqual([[123]]);
     });
+
+    it("should support createContext this.context inside classes", async () => {
+      const ctx = createContext(123);
+      let ctxValue;
+
+      class Inner extends Component {
+        render() {
+          ctxValue = this.context;
+          return null;
+        }
+      }
+
+      Inner.contextType = ctx;
+
+      await prepass(
+        <ctx.Provider value={123}>
+          <Inner />
+        </ctx.Provider>
+      );
+
+      expect(ctxValue).toEqual(123);
+    });
   });
 
   describe("lazy", () => {
