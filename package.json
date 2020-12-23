@@ -1,6 +1,6 @@
 {
   "name": "preact-ssr-prepass",
-  "version": "1.0.0",
+  "version": "1.1.2",
   "description": "react-ssr-prepass drop-in replacement for preact-x",
   "main": "dist/index.js",
   "module": "dist/index.module.js",
@@ -15,8 +15,12 @@
   "repository": "https://github.com/sventschui/preact-ssr-prepass",
   "author": "Sven Tschui <sventschui@gmail.com>",
   "license": "MIT",
+  "husky": {
+    "hooks": {
+      "pre-commit": "prettier --write src/**/*.js typings/**/*.tsx typings/**/*.ts"
+    }
+  },
   "scripts": {
-    "lint": "eslint src/ && flow check",
     "test": "npm run test:flow && npm run test:unit && npm run test:ts",
     "test:flow": "flow check",
     "test:unit": "jest --coverage --roots src",
@@ -37,18 +41,19 @@
     "@babel/preset-env": "^7.4.5",
     "@babel/preset-react": "^7.0.0",
     "babel-eslint": "^10.0.1",
-    "babel-jest": "^24.8.0",
+    "babel-jest": "^26.0.0",
     "coveralls": "^3.0.3",
-    "eslint": "6",
-    "eslint-config-airbnb-base": "14",
-    "eslint-plugin-import": "^2.17.2",
-    "flow-bin": "0.117.0",
+    "flow-bin": "^0.134.0",
     "flow-copy-source": "^2.0.6",
-    "flow-typed": "^2.5.2",
-    "jest": "^24.8.0",
-    "microbundle": "^0.11.0",
-    "preact": "^10.4.6",
+    "flow-typed": "^3.0.0",
+    "husky": "^4.2.5",
+    "jest": "^26.0.0",
+    "lint-staged": "^10.2.11",
+    "microbundle": "^0.12.0",
+    "preact": "10",
+    "preact-render-to-string": "^5.1.10",
+    "prettier": "^2.0.5",
     "rimraf": "3",
-    "typescript": "^3.4.5"
+    "typescript": "^4.0.0"
   }
 }

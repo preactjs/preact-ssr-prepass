@@ -1,5 +1,6 @@
 [ignore]
 <PROJECT_ROOT>/typings/.*
+<PROJECT_ROOT>/dist/.*
 
 [include]
 
