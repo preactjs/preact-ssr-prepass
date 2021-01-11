@@ -57,22 +57,22 @@ export default function prepass(
 
     let isClassComponent = false;
 
+    // Necessary for createContext api. Setting this property will pass
+    // the context value as `this.context` just for this component.
+    let cxType = nodeName.contextType;
+    let provider = cxType && context[cxType.__c];
+    let cctx =
+      cxType != null
+        ? provider
+          ? provider.props.value
+          : cxType[createContextDefaultValue] ||
+            cxType[createContextDefaultValueNew]
+        : context;
+
     if (
       !nodeName.prototype ||
       typeof nodeName.prototype.render !== "function"
     ) {
-      // Necessary for createContext api. Setting this property will pass
-      // the context value as `this.context` just for this component.
-      let cxType = nodeName.contextType;
-      let provider = cxType && context[cxType.__c];
-      let cctx =
-        cxType != null
-          ? provider
-            ? provider.props.value
-            : cxType[createContextDefaultValue] ||
-              cxType[createContextDefaultValueNew]
-          : context;
-
       // stateless functional components
       doRender = () => {
         try {
@@ -96,12 +96,12 @@ export default function prepass(
 
       // class-based components
       // c = new nodeName(props, context);
-      c = vnode.__c = new nodeName(props, context);
+      c = vnode.__c = new nodeName(props, cctx);
       // initialize components in dirty state so setState() doesn't enqueue re-rendering:
       c.__d = true;
       c.__v = vnode;
       c.props = props;
-      c.context = context;
+      c.context = cctx;
       if (c.state === undefined) {
         c.state = {};
       }
