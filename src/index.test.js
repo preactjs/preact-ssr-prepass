@@ -124,6 +124,42 @@ describe("prepass", () => {
     });
   });
 
+  it("should call options.render for function components", async () => {
+    const render = jest.fn();
+    const r = jest.fn();
+    options.render = render;
+    options.__r = r;
+    const Component = jest.fn(() => <div />);
+
+    const promise = prepass(<Component prop="value" />);
+
+    const result = await promise;
+    expect(result).toEqual(undefined);
+
+    expect(render).toHaveBeenCalledTimes(1);
+    expect(r).toHaveBeenCalledTimes(1);
+  });
+
+  it("should call options.render for class components", async () => {
+    const render = jest.fn();
+    const r = jest.fn();
+    options.render = render;
+    options.__r = r;
+
+    class Outer extends Component {
+      render() {
+        return <div />
+      }
+    }
+    const outerRenderSpy = jest.spyOn(Outer.prototype, "render");
+
+    await prepass(<Outer />);
+
+    expect(outerRenderSpy).toHaveBeenCalled();
+    expect(render).toHaveBeenCalledTimes(1);
+    expect(r).toHaveBeenCalledTimes(1);
+  });
+
   describe("vnode traversal", () => {
     it("should traverse functional components", async () => {
       const Inner = jest.fn(() => <div />);
