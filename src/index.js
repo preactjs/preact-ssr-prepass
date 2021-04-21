@@ -51,10 +51,6 @@ export default function prepass(
       c.state = {};
     }
 
-    // options.render was renamed to _render (mangled to __r)
-    if (options.render) options.render(vnode);
-    if (options.__r) options.__r(vnode);
-
     let isClassComponent = false;
 
     // Necessary for createContext api. Setting this property will pass
@@ -78,6 +74,9 @@ export default function prepass(
         try {
           const previousSkipEffects = options[_skipEffects];
           options[_skipEffects] = true;
+          // options.render was renamed to _render (mangled to __r)
+          if (options.render) options.render(vnode);
+          if (options.__r) options.__r(vnode);
           const renderResult = Promise.resolve(
             nodeName.call(vnode.__c, props, cctx)
           );
@@ -116,6 +115,9 @@ export default function prepass(
 
       doRender = () => {
         try {
+          // options.render was renamed to _render (mangled to __r)
+          if (options.render) options.render(vnode);
+          if (options.__r) options.__r(vnode);
           return Promise.resolve(c.render(c.props, c.state, c.context));
         } catch (e) {
           if (e && e.then) {
