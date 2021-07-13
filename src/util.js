@@ -8,8 +8,8 @@
  * @private
  */
 export function assign(obj /*: Object */, props /*: Object */) /*: Object */ {
-  for (let i in props) obj[i] = props[i];
-  return obj;
+	for (let i in props) obj[i] = props[i];
+	return obj;
 }
 
 /**
@@ -20,13 +20,13 @@ export function assign(obj /*: Object */, props /*: Object */) /*: Object */ {
  * @private
  */
 export function getChildren(
-  accumulator /*: Array<Object> */,
-  children /*: Array<Object> | Object */
+	accumulator /*: Array<Object> */,
+	children /*: Array<Object> | Object */
 ) /*: Array<Object> */ {
-  if (Array.isArray(children)) {
-    children.reduce(getChildren, accumulator);
-  } else if (children != null && children !== false) {
-    accumulator.push(children);
-  }
-  return accumulator;
+	if (Array.isArray(children)) {
+		children.reduce(getChildren, accumulator);
+	} else if (children != null && children !== false) {
+		accumulator.push(children);
+	}
+	return accumulator;
 }

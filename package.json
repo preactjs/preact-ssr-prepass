@@ -7,12 +7,12 @@
   "umd:main": "dist/index.umd.js",
   "source": "src/index.js",
   "exports": {
-		".": {
- 			"browser": "./dist/index.module.js",
-			"umd": "./dist/index.umd.js",
-			"import": "./dist/index.mjs",
-			"require": "./dist/index.js"
-		}
+    ".": {
+      "browser": "./dist/index.module.js",
+      "umd": "./dist/index.umd.js",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
   },
   "types": "typings/index.d.ts",
   "files": [
@@ -27,6 +27,11 @@
     "hooks": {
       "pre-commit": "prettier --write src/**/*.js typings/**/*.tsx typings/**/*.ts"
     }
+  },
+  "lint-staged": {
+    "**/*.{js,jsx,ts,tsx}": [
+      "prettier --write src/**/*.js typings/**/*.tsx typings/**/*.ts"
+    ]
   },
   "scripts": {
     "test": "npm run test:flow && npm run test:unit && npm run test:ts",
@@ -57,7 +62,7 @@
     "flow-typed": "^3.0.0",
     "husky": "^4.2.5",
     "jest": "^26.0.0",
-    "lint-staged": "^10.2.11",
+    "lint-staged": "^11.0.1",
     "microbundle": "^0.12.0",
     "preact": "10",
     "preact-render-to-string": "^5.1.10",
