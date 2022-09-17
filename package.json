@@ -31,7 +31,7 @@
   "scripts": {
     "test": "yarn test:flow && yarn test:unit",
     "test:flow": "flow check",
-    "test:unit": "jest --coverage --roots src",
+    "test:unit": "jest --coverage --roots src --runInBand",
     "test:unit:watch": "jest --coverage --watch --roots src",
     "test:unit:travis": "yarn test:unit --coverageReporters=text-lcov | yarn coveralls",
     "test:ts": "tsc -p typings/tsconfig.json",
