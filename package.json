@@ -58,8 +58,8 @@
     "jest": "^26.0.0",
     "lint-staged": "^11.0.1",
     "microbundle": "^0.13.3",
-    "preact": "10.5.14",
-    "preact-render-to-string": "^5.1.19",
+    "preact": "10.11.0",
+    "preact-render-to-string": "^5.2.4",
     "prettier": "^2.0.5",
     "rimraf": "3.0.2",
     "typescript": "^4.3.5"

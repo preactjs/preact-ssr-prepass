@@ -9,7 +9,7 @@ import {
 	Component,
 } from "preact";
 import prepass from ".";
-import { useState, useEffect, useLayoutEffect } from "preact/hooks";
+import { useState, useEffect, useLayoutEffect, useId } from "preact/hooks";
 import { lazy, Suspense } from "preact/compat";
 import renderToString from "preact-render-to-string";
 
@@ -1121,6 +1121,31 @@ describe("prepass", () => {
 			expect(setDirtyFromPreactCore).toHaveBeenCalledTimes(1);
 		});
 	});
+
+	describe("useId", () => {
+		it('should generate unique ids', async () => {
+			const ids = []
+			const Child = () => {
+				const id = useId();
+				ids.push(id)
+				return <input id={id} />
+			}
+
+			const App = () => {
+				const id = useId();
+				ids.push(id)
+				return (
+					<main id={id}>
+						<Child />
+					</main>
+				)
+			}
+
+			await prepass(<App />);
+
+			expect(ids).toEqual([])
+		})
+	})
 
 	describe("visitor", () => {
 		class MyClassComp extends Component {

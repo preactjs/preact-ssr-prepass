@@ -6,12 +6,17 @@ import { Suspense } from "preact/compat";
 const createContextDefaultValue = "__p";
 const createContextDefaultValueNew = "__";
 const _skipEffects = "__s";
+const _children = "__c"
+const _parent = "__"
+const _diff = "__b"
 
 /*::
 type VNode = {
 	type: string | Function,
 	props: Object,
 	__c: typeof Component,
+	__: any,
+	__c: any,
 };
 
 type VNodes = VNode | Array<VNode>;
@@ -24,7 +29,8 @@ type Options = {
 export default function prepass(
 	vnode /*: VNode */,
 	visitor /*: ?(vnode: VNode, component: typeof Component) => ?Promise<any> */,
-	context /*: ?Object */
+	context /*: ?Object */,
+	parent /*: ?VNode */,
 ) /*: Promise<any|Array<any>> */ {
 	// null, boolean, text, number "vnodes" need to prepassing...
 	if (vnode == null || typeof vnode !== "object") {
@@ -35,6 +41,8 @@ export default function prepass(
 		props = vnode.props,
 		children = [];
 	context = context || {};
+
+	vnode[_parent] = parent;
 
 	if (
 		typeof nodeName === "function" &&
@@ -64,6 +72,8 @@ export default function prepass(
 					: cxType[createContextDefaultValue] ||
 					  cxType[createContextDefaultValueNew]
 				: context;
+
+		if (options[_diff]) options[_diff](vnode)
 
 		if (
 			!nodeName.prototype ||
@@ -140,18 +150,28 @@ export default function prepass(
 			}
 
 			if (Array.isArray(rendered)) {
+				vnode[_children] = [];
 				return Promise.all(
-					rendered.map((node) => prepass(node, visitor, context))
+					rendered.map((node) => {
+						vnode[_children].push(node);
+						return prepass(node, visitor, context, vnode)
+					})
 				);
 			}
 
-			return prepass(rendered, visitor, context);
+			return prepass(rendered, visitor, context, vnode);
 		});
+	} else {
+		if (options[_diff]) options[_diff](vnode)
 	}
 
 	if (props && getChildren((children = []), props.children).length) {
+		vnode[_children] = [];
 		return Promise.all(
-			children.map((child) => prepass(child, visitor, context))
+			children.map((child) => {
+				vnode[_children].push(child);
+				return prepass(child, visitor, context, vnode)
+			})
 		);
 	}
 
