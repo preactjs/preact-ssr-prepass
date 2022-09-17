@@ -6,7 +6,7 @@ import { Suspense } from "preact/compat";
 const createContextDefaultValue = "__p";
 const createContextDefaultValueNew = "__";
 const _skipEffects = "__s";
-const _children = "__c"
+const _children = "__k"
 const _parent = "__"
 const _diff = "__b"
 
@@ -26,7 +26,7 @@ type Options = {
 };
 */
 
-export default function prepass(
+export default async function prepass(
 	vnode /*: VNode */,
 	visitor /*: ?(vnode: VNode, component: typeof Component) => ?Promise<any> */,
 	context /*: ?Object */,
@@ -73,7 +73,7 @@ export default function prepass(
 					  cxType[createContextDefaultValueNew]
 				: context;
 
-		if (options[_diff]) options[_diff](vnode)
+		vnode[_parent] = parent
 
 		if (
 			!nodeName.prototype ||
@@ -86,12 +86,16 @@ export default function prepass(
 					options[_skipEffects] = true;
 					// options.render was renamed to _render (mangled to __r)
 					if (options.render) options.render(vnode);
-					if (options.__r) options.__r(vnode);
+					if (options.__r) {
+						options.__r(vnode);
+					}
+
 					const renderResult = Promise.resolve(
 						nodeName.call(vnode.__c, props, cctx)
 					);
 					options[_skipEffects] = previousSkipEffects;
 					return renderResult;
+
 				} catch (e) {
 					if (e && e.then) {
 						return e.then(doRender, doRender);
@@ -139,24 +143,30 @@ export default function prepass(
 			};
 		}
 
+		if (options[_diff]) {
+			options[_diff](vnode)
+		}
+
 		return (visitor
 			? (
 					visitor(vnode, isClassComponent ? c : undefined) || Promise.resolve()
 			  ).then(doRender)
 			: doRender()
-		).then((rendered) => {
+		).then(async (rendered) => {
 			if (c.getChildContext) {
 				context = assign(assign({}, context), c.getChildContext());
 			}
 
 			if (Array.isArray(rendered)) {
 				vnode[_children] = [];
-				return Promise.all(
+				const result = await Promise.all(
 					rendered.map((node) => {
 						vnode[_children].push(node);
 						return prepass(node, visitor, context, vnode)
 					})
 				);
+				if (options.unmount) options.unmount(vnode)
+				return result;
 			}
 
 			return prepass(rendered, visitor, context, vnode);
@@ -167,12 +177,16 @@ export default function prepass(
 
 	if (props && getChildren((children = []), props.children).length) {
 		vnode[_children] = [];
-		return Promise.all(
+		const result = await Promise.all(
 			children.map((child) => {
 				vnode[_children].push(child);
 				return prepass(child, visitor, context, vnode)
 			})
 		);
+
+		if (options.unmount) options.unmount(vnode)
+
+		return result;
 	}
 
 	return Promise.resolve();
