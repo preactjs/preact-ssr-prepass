@@ -16,7 +16,7 @@ type VNode = {
 	props: Object,
 	__c: typeof Component,
 	__: any,
-	__c: any,
+	__k: any,
 };
 
 type VNodes = VNode | Array<VNode>;
