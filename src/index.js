@@ -26,7 +26,7 @@ type Options = {
 };
 */
 
-export default async function prepass(
+export default function prepass(
 	vnode /*: VNode */,
 	visitor /*: ?(vnode: VNode, component: typeof Component) => ?Promise<any> */,
 	context /*: ?Object */,
@@ -152,21 +152,19 @@ export default async function prepass(
 					visitor(vnode, isClassComponent ? c : undefined) || Promise.resolve()
 			  ).then(doRender)
 			: doRender()
-		).then(async (rendered) => {
+		).then((rendered) => {
 			if (c.getChildContext) {
 				context = assign(assign({}, context), c.getChildContext());
 			}
 
 			if (Array.isArray(rendered)) {
 				vnode[_children] = [];
-				const result = await Promise.all(
+				return Promise.all(
 					rendered.map((node) => {
 						vnode[_children].push(node);
 						return prepass(node, visitor, context, vnode)
 					})
 				);
-				if (options.unmount) options.unmount(vnode)
-				return result;
 			}
 
 			return prepass(rendered, visitor, context, vnode);
@@ -177,16 +175,12 @@ export default async function prepass(
 
 	if (props && getChildren((children = []), props.children).length) {
 		vnode[_children] = [];
-		const result = await Promise.all(
+		return Promise.all(
 			children.map((child) => {
 				vnode[_children].push(child);
 				return prepass(child, visitor, context, vnode)
 			})
 		);
-
-		if (options.unmount) options.unmount(vnode)
-
-		return result;
 	}
 
 	return Promise.resolve();
