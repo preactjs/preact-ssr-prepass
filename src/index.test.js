@@ -9,7 +9,7 @@ import {
 	Component,
 } from "preact";
 import prepass from ".";
-import { useState, useEffect, useLayoutEffect } from "preact/hooks";
+import { useState, useEffect, useLayoutEffect, useId } from "preact/hooks";
 import { lazy, Suspense } from "preact/compat";
 import renderToString from "preact-render-to-string";
 
@@ -111,6 +111,131 @@ function createSuspendingComponent() {
 }
 
 describe("prepass", () => {
+	describe("hooks", () => {
+		// TODO: this seems to work but sais it's not
+		it.skip("should not enqueue components for re-rendering when using setState", async () => {
+			let didUpdate = false;
+
+			// a re-render would invoke an array sort on the render queue, thus lets check nothing does so
+			const arraySort = jest.spyOn(Array.prototype, "sort");
+
+			function MyHookedComponent() {
+				const [state, setState] = useState("foo");
+
+				if (!didUpdate) {
+					didUpdate = true;
+					throw new Promise((resolve) => {
+						setState("bar");
+						resolve();
+					});
+				}
+
+				return <div>{state}</div>;
+			}
+
+			const vnode = <MyHookedComponent />;
+
+			await prepass(vnode);
+			expect(arraySort).not.toHaveBeenCalled();
+
+			// let's test our test. If something changes in preact and no sort is executed
+			// before re-rendering our test would be false-positiv, thus we test that sort is called
+			// when c.__dirty is false
+
+			function MyHookedComponent2() {
+				const c = this;
+
+				const [state, setState] = useState("foo");
+
+				if (!didUpdate) {
+					didUpdate = true;
+					throw new Promise((resolve) => {
+						setState(() => {
+							c.__d = false;
+							return "bar";
+						});
+						resolve();
+					});
+				}
+
+				return <div>{state}</div>;
+			}
+
+			didUpdate = false;
+			const vnode2 = <MyHookedComponent2 />;
+
+			await prepass(vnode2);
+			expect(arraySort).toHaveBeenCalledTimes(1);
+			arraySort.mockRestore();
+		});
+
+		it("it should skip useEffect", async () => {
+			const spy = jest.fn();
+			function MyHookedComponent() {
+				useEffect(spy, []);
+
+				return <div />;
+			}
+
+			await prepass(<MyHookedComponent />);
+
+			expect(spy).not.toHaveBeenCalled();
+		});
+
+		it("it should skip useLayoutEffect", async () => {
+			const spy = jest.fn();
+			function MyHookedComponent() {
+				useLayoutEffect(spy, []);
+
+				return <div />;
+			}
+
+			await prepass(<MyHookedComponent />);
+
+			expect(spy).not.toHaveBeenCalled();
+		});
+
+		it("it should reset _skipEffects", async () => {
+			function MyHookedComponent() {
+				useLayoutEffect(() => {}, []);
+
+				return <div />;
+			}
+
+			options.__s = "test";
+			await prepass(<MyHookedComponent />);
+			expect(options.__s).toEqual("test");
+		});
+
+		describe("useId", () => {
+			it('should generate unique ids', async () => {
+				const ids = []
+				const Child = () => {
+					const id = useId();
+					ids.push(id)
+					return <input id={id} />
+				}
+
+				const App = () => {
+					const id = useId();
+					ids.push(id)
+					return (
+						<main id={id}>
+							<Child />
+						</main>
+					)
+				}
+
+				await prepass(<App />);
+
+				expect(ids).toEqual([
+					"P481",
+					"P15361",
+				])
+			})
+		})
+	});
+
 	describe("rendering", () => {
 		it("should pass props to render", async () => {
 			const Component = jest.fn(() => <div />);
@@ -276,103 +401,6 @@ describe("prepass", () => {
 			);
 
 			expect(true).toEqual(true);
-		});
-	});
-
-	describe("hooks", () => {
-		// TODO: this seems to work but sais it's not
-		it.skip("should not enqueue components for re-rendering when using setState", async () => {
-			let didUpdate = false;
-
-			// a re-render would invoke an array sort on the render queue, thus lets check nothing does so
-			const arraySort = jest.spyOn(Array.prototype, "sort");
-
-			function MyHookedComponent() {
-				const [state, setState] = useState("foo");
-
-				if (!didUpdate) {
-					didUpdate = true;
-					throw new Promise((resolve) => {
-						setState("bar");
-						resolve();
-					});
-				}
-
-				return <div>{state}</div>;
-			}
-
-			const vnode = <MyHookedComponent />;
-
-			await prepass(vnode);
-			expect(arraySort).not.toHaveBeenCalled();
-
-			// let's test our test. If something changes in preact and no sort is executed
-			// before re-rendering our test would be false-positiv, thus we test that sort is called
-			// when c.__dirty is false
-
-			function MyHookedComponent2() {
-				const c = this;
-
-				const [state, setState] = useState("foo");
-
-				if (!didUpdate) {
-					didUpdate = true;
-					throw new Promise((resolve) => {
-						setState(() => {
-							c.__d = false;
-							return "bar";
-						});
-						resolve();
-					});
-				}
-
-				return <div>{state}</div>;
-			}
-
-			didUpdate = false;
-			const vnode2 = <MyHookedComponent2 />;
-
-			await prepass(vnode2);
-			expect(arraySort).toHaveBeenCalledTimes(1);
-			arraySort.mockRestore();
-		});
-
-		it("it should skip useEffect", async () => {
-			const spy = jest.fn();
-			function MyHookedComponent() {
-				useEffect(spy, []);
-
-				return <div />;
-			}
-
-			await prepass(<MyHookedComponent />);
-
-			expect(spy).not.toHaveBeenCalled();
-		});
-
-		it("it should skip useLayoutEffect", async () => {
-			const spy = jest.fn();
-			function MyHookedComponent() {
-				useLayoutEffect(spy, []);
-
-				return <div />;
-			}
-
-			await prepass(<MyHookedComponent />);
-
-			expect(spy).not.toHaveBeenCalled();
-		});
-
-		it("it should reset _skipEffects", async () => {
-			function MyHookedComponent() {
-				useLayoutEffect(() => {}, []);
-
-				return <div />;
-			}
-
-			options.__s = "test";
-			await prepass(<MyHookedComponent />);
-			expect(options.__s).toEqual("test");
 		});
 	});
 
