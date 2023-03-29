@@ -250,9 +250,7 @@ describe("prepass", () => {
 	});
 
 	it("should call options.render for function components", async () => {
-		const render = jest.fn();
 		const r = jest.fn();
-		options.render = render;
 		options.__r = r;
 		const Component = jest.fn(() => <div />);
 
@@ -261,14 +259,11 @@ describe("prepass", () => {
 		const result = await promise;
 		expect(result).toEqual(undefined);
 
-		expect(render).toHaveBeenCalledTimes(1);
 		expect(r).toHaveBeenCalledTimes(1);
 	});
 
 	it("should call options.render for class components", async () => {
-		const render = jest.fn();
 		const r = jest.fn();
-		options.render = render;
 		options.__r = r;
 
 		class Outer extends Component {
@@ -281,7 +276,6 @@ describe("prepass", () => {
 		await prepass(<Outer />);
 
 		expect(outerRenderSpy).toHaveBeenCalled();
-		expect(render).toHaveBeenCalledTimes(1);
 		expect(r).toHaveBeenCalledTimes(1);
 	});
 
@@ -780,19 +774,6 @@ describe("prepass", () => {
 		});
 
 		describe("preact options", () => {
-			it("should call options.render (legacy)", async () => {
-				const Suspendable = jest.fn(Suspendable_);
-				options.render = jest.fn();
-
-				const result = await prepass(
-					<Suspendable isDone={() => true}>Hello</Suspendable>
-				);
-				expect(options.render.mock.calls.length).toBe(1);
-				expect(result).toEqual([undefined]);
-
-				delete options.render;
-			});
-
 			it("should call options._render (__r)", async () => {
 				const Suspendable = jest.fn(Suspendable_);
 				options.__r = jest.fn();

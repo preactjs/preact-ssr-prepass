@@ -1,5 +1,5 @@
 // @flow
-import { assign, getChildren } from "./util";
+import { getChildren } from "./util";
 import { options, Fragment, Component } from "preact";
 import { Suspense } from "preact/compat";
 
@@ -9,6 +9,10 @@ const _skipEffects = "__s";
 const _children = "__k"
 const _parent = "__"
 const _diff = "__b"
+const _render = "__r"
+
+const assign = Object.assign;
+const isArray = Array.isArray;
 
 /*::
 type VNode = {
@@ -26,10 +30,32 @@ type Options = {
 };
 */
 
-export default function prepass(
+let onDiff;
+let onRender;
+
+function prepass(
 	vnode /*: VNode */,
 	visitor /*: ?(vnode: VNode, component: typeof Component) => ?Promise<any> */,
-	context /*: ?Object */,
+) /*: Promise<any|Array<any>> */ {
+	const prevVnodeHook = options.vnode;
+	const prevSkipEffects = options[_skipEffects];
+
+	onDiff = options[_diff]
+	onRender = options[_render]
+	options.vnode = undefined;
+	options[_skipEffects] = true;
+
+	return _prepass(vnode, {}, visitor).then(result => {
+		options[_skipEffects] = prevSkipEffects;
+		options.vnode = prevVnodeHook;
+		return result;
+	});
+}
+
+function _prepass(
+	vnode /*: VNode */,
+	context /*: Object */,
+	visitor /*: ?(vnode: VNode, component: typeof Component) => ?Promise<any> */,
 	parent /*: ?VNode */,
 ) /*: Promise<any|Array<any>> */ {
 	// null, boolean, text, number "vnodes" need to prepassing...
@@ -38,9 +64,7 @@ export default function prepass(
 	}
 
 	let nodeName = vnode.type,
-		props = vnode.props,
-		children = [];
-	context = context || {};
+		props = vnode.props;
 
 	vnode[_parent] = parent;
 
@@ -82,20 +106,11 @@ export default function prepass(
 			// stateless functional components
 			doRender = () => {
 				try {
-					const previousSkipEffects = options[_skipEffects];
-					options[_skipEffects] = true;
-					// options.render was renamed to _render (mangled to __r)
-					if (options.render) options.render(vnode);
-					if (options.__r) {
-						options.__r(vnode);
-					}
+					if (onRender) onRender(vnode);
 
-					const renderResult = Promise.resolve(
+					return Promise.resolve(
 						nodeName.call(vnode.__c, props, cctx)
 					);
-					options[_skipEffects] = previousSkipEffects;
-					return renderResult;
-
 				} catch (e) {
 					if (e && e.then) {
 						return e.then(doRender, doRender);
@@ -121,17 +136,12 @@ export default function prepass(
 
 			// TODO: does react-ssr-prepass call the visitor before lifecycle hooks?
 			if (nodeName.getDerivedStateFromProps)
-				c.state = assign(
-					assign({}, c.state),
-					nodeName.getDerivedStateFromProps(c.props, c.state)
-				);
+				c.state = assign({}, c.state, nodeName.getDerivedStateFromProps(c.props, c.state));
 			else if (c.componentWillMount) c.componentWillMount();
 
 			doRender = () => {
 				try {
-					// options.render was renamed to _render (mangled to __r)
-					if (options.render) options.render(vnode);
-					if (options.__r) options.__r(vnode);
+					if (onRender) onRender(vnode);
 					return Promise.resolve(c.render(c.props, c.state, c.context));
 				} catch (e) {
 					if (e && e.then) {
@@ -143,9 +153,7 @@ export default function prepass(
 			};
 		}
 
-		if (options[_diff]) {
-			options[_diff](vnode)
-		}
+		if (onDiff) onDiff(vnode)
 
 		return (visitor
 			? (
@@ -154,34 +162,37 @@ export default function prepass(
 			: doRender()
 		).then((rendered) => {
 			if (c.getChildContext) {
-				context = assign(assign({}, context), c.getChildContext());
+				context = assign({}, context, c.getChildContext());
 			}
 
-			if (Array.isArray(rendered)) {
+			if (isArray(rendered)) {
 				vnode[_children] = [];
 				return Promise.all(
 					rendered.map((node) => {
 						vnode[_children].push(node);
-						return prepass(node, visitor, context, vnode)
+						return _prepass(node, context, visitor, vnode)
 					})
 				);
 			}
 
-			return prepass(rendered, visitor, context, vnode);
+			return _prepass(rendered, context, visitor, vnode);
 		});
 	} else {
-		if (options[_diff]) options[_diff](vnode)
+		if (onDiff) onDiff(vnode)
 	}
 
-	if (props && getChildren((children = []), props.children).length) {
+	let children = [];
+	if (props && getChildren(children, props.children).length) {
 		vnode[_children] = [];
 		return Promise.all(
 			children.map((child) => {
 				vnode[_children].push(child);
-				return prepass(child, visitor, context, vnode)
+				return _prepass(child, context, visitor, vnode)
 			})
 		);
 	}
 
 	return Promise.resolve();
 }
+
+export default prepass
