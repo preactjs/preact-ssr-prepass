@@ -1035,7 +1035,7 @@ describe("prepass", () => {
 						// this checks whether the call comes from prepass or preact (core)
 						new Error().stack
 							.split("\n")[2]
-							.match(/^\s*at prepass \(.*\/src\/index\.js:[0-9]+:[0-9]+\)$/)
+							.match(/^\s*at _prepass \(.*\/src\/index\.js:[0-9]+:[0-9]+\)$/)
 					) {
 						// we want to force the failure case here to test that preact
 						// didn't change in a way invalidating our shady test method
@@ -1098,7 +1098,7 @@ describe("prepass", () => {
 						// this checks whether the call comes from prepass or preact (core)
 						new Error().stack
 							.split("\n")[2]
-							.match(/^\s*at prepass \(.*\/src\/index\.js:[0-9]+:[0-9]+\)$/)
+							.match(/^\s*at _prepass \(.*\/src\/index\.js:[0-9]+:[0-9]+\)$/)
 					) {
 						// we want to force the failure case here to test that preact
 						// didn't change in a way invalidating our shady test method
