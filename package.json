@@ -8,6 +8,7 @@
   "source": "src/index.js",
   "exports": {
     ".": {
+      "types": "./typings/index.d.ts",
       "browser": "./dist/index.module.js",
       "umd": "./dist/index.umd.js",
       "import": "./dist/index.mjs",
