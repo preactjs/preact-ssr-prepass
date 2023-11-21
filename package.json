@@ -38,7 +38,7 @@
     "test:ts": "tsc -p typings/tsconfig.json",
     "build": "yarn build:clean && yarn build:bundle && yarn build:flow",
     "build:clean": "rimraf dist",
-    "build:bundle": "microbundle -i src/index.js --external preact --compress --strict --name preactSsrPrepass",
+    "build:bundle": "microbundle -i src/index.js --external preact --compress --strict --name preactSsrPrepass --no-generateTypes",
     "build:flow": "flow-copy-source -i '*.test.js' src/ dist/",
     "prepublishOnly": "yarn test && yarn build",
     "postbuild": "node ./config/node-13-exports.js"
