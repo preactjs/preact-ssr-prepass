@@ -1,6 +1,6 @@
 // @flow
 import { assign, getChildren } from "./util";
-import { options, Fragment, Component } from "preact";
+import { options, Fragment, Component, h } from "preact";
 import { Suspense } from "preact/compat";
 
 const createContextDefaultValue = "__p";
@@ -42,6 +42,10 @@ export default function prepass(
 		children = [];
 	context = context || {};
 
+	if (!parent) {
+		parent = h(Fragment, null);
+		parent[_children] = parent[vnode];
+	}
 	vnode[_parent] = parent;
 
 	if (
