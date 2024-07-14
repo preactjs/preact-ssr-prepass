@@ -1,6 +1,6 @@
 {
   "name": "preact-ssr-prepass",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "react-ssr-prepass drop-in replacement for preact-x",
   "main": "dist/index.js",
   "module": "dist/index.module.js",
