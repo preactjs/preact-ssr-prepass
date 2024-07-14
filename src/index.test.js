@@ -229,8 +229,8 @@ describe("prepass", () => {
 				await prepass(<App />);
 
 				expect(ids).toEqual([
-					"P481",
-					"P15361",
+					"P0-0",
+					"P0-1",
 				])
 			})
 		})
