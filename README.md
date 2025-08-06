@@ -1,3 +1,6 @@
+> [!NOTE]
+> This package has been deprecated, use the `renderToStringAsync` export from `preact-render-to-string` instead.
+
 # preact-ssr-prepass
 
 [![npm](https://img.shields.io/npm/v/preact-ssr-prepass.svg)](http://npm.im/preact-ssr-prepass)
